@@ -10,7 +10,7 @@ This repository is part of the *PODFRIDGE* project — **P**opulation **D**iffer
 
 This dataset is described in:
 
-**Pryor, Y.; Donadio, J. P.; Muller, S.C.; Wilson, J.; Lasisi, T.** (2025). National and state-level datasets of United States forensic DNA databases 2001–2025. arXiv preprint. [10.5281/zenodo.17215677](https://doi.org/10.5281/zenodo.17215677)
+**Pryor, Y.; Donadio, J. P.; Muller, S.C.; Wilson, J.; Lasisi, T.** (2025). National and state-level datasets of United States forensic DNA databases 2001–2025. arXiv preprint. [10.48550/arXiv.2511.11953]([https://doi.org/10.5281/zenodo.17215677](https://doi.org/10.48550/arXiv.2511.11953))
 
 **Dataset DOI:** [10.5281/zenodo.17215677](https://doi.org/10.5281/zenodo.17215677)
 

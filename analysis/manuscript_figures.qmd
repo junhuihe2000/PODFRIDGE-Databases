@@ -26,6 +26,7 @@ library(patchwork)
 library(ggrepel)
 library(viridis)
 library(sf)
+library(cowplot)
 
 if (!requireNamespace("qualpalr", quietly = TRUE)) {
   install.packages("qualpalr")
@@ -33,6 +34,9 @@ if (!requireNamespace("qualpalr", quietly = TRUE)) {
 library(qualpalr)
 
 if (!requireNamespace("urbnmapr", quietly = TRUE)) {
+  if (!requireNamespace("remotes", quietly = TRUE)) {
+    install.packages("remotes")
+  }
   remotes::install_github("UrbanInstitute/urbnmapr")
 }
 library(urbnmapr)
@@ -225,11 +229,13 @@ ggsave(
 )
 ```
 
-## Figure 5 – NDIS Anomaly Log
+## Figure 5 – NDIS Anomaly Distribution
 
 ```{r}
-#| label: fig5-anomaly-log
+#| label: fig5-anomaly-distribution
 #| echo: true
+#| fig-width: 14
+#| fig-height: 16
 
 data_file <- file.path(here("data", "ndis", "intermediate", "anomaly_log.csv"))
 anomaly_log <- read_csv(data_file, show_col_types = FALSE)
@@ -237,158 +243,132 @@ anomaly_log <- read_csv(data_file, show_col_types = FALSE)
 metric_order <- c("Offender Profiles", "Forensic Profiles", "Arrestee Profiles",
                   "Investigations Aided", "NDIS Labs")
 
-anomaly_plot_data <- anomaly_log %>%
-  group_by(metric, jurisdiction) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  mutate(metric = factor(metric, levels = metric_order))
+# Use viridis-inspired colors for flag types
+flag_colors <- c(
+  "decimal_spike_dip" = "#440154",        # Deep purple (viridis)
+  "spike_dip" = "#31688e",                 # Blue (viridis)
+  "ndis_labs_spike" = "#35b779",           # Green (viridis)
+  "stale_exact_reappearance" = "#fde725"   # Yellow (viridis)
+)
 
-p_anomaly_distribution <- ggplot(anomaly_plot_data,
-                                 aes(x = jurisdiction, y = count, fill = metric)) +
-  geom_bar(stat = "identity", position = "stack", color = "black",
-           linewidth = 0.3, width = 1) +
-  scale_fill_manual(name = "Metric", values = metric_colors) +
-  scale_y_continuous(limits = c(0, NA), expand = c(0, 0)) +
-  theme_minimal(base_size = 10) +
+# Flag type display labels
+flag_labels <- c(
+  "decimal_spike_dip" = "Decimal Error",
+  "spike_dip" = "Spike/Dip",
+  "ndis_labs_spike" = "Labs Spike",
+  "stale_exact_reappearance" = "Stale Cache"
+)
+
+# Get ALL jurisdictions alphabetically (for consistent x-axis across panels)
+all_jurisdictions <- anomaly_log %>%
+  pull(jurisdiction) %>%
+  unique() %>%
+  sort()
+
+# Prepare data: count by metric, jurisdiction, and flag type
+anomaly_plot_data <- anomaly_log %>%
+  group_by(metric, jurisdiction, flag_type) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(
+    metric = factor(metric, levels = metric_order),
+    flag_type = factor(flag_type, levels = names(flag_colors)),
+    jurisdiction = factor(jurisdiction, levels = all_jurisdictions)
+  )
+
+# Calculate global y-axis max (sum of all flag types per jurisdiction per metric)
+y_max_global <- anomaly_plot_data %>%
+  group_by(metric, jurisdiction) %>%
+  summarise(total = sum(count), .groups = "drop") %>%
+  pull(total) %>%
+  max(na.rm = TRUE)
+
+# Add 10% padding
+y_max_global <- ceiling(y_max_global * 1.1)
+
+# Common theme for panels (legend will be collected at bottom)
+theme_panel <- theme_minimal(base_size = 10) +
   theme(
     panel.grid = element_blank(),
     axis.line = element_line(color = "black", linewidth = 0.4),
     axis.ticks = element_line(color = "black", linewidth = 0.4),
-    axis.text = element_text(color = "black", size = 9),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    axis.title.x = element_text(size = 11, face = "bold", margin = margin(t = 8)),
-    axis.title.y = element_text(size = 11, face = "bold", margin = margin(r = 8)),
-    legend.title = element_text(size = 10, face = "bold"),
-    legend.text = element_text(size = 9),
-    legend.key.size = unit(0.5, "cm"),
-    legend.key.width = unit(0.4, "cm"),
-    legend.key.height = unit(0.4, "cm"),
-    plot.margin = margin(t = 5, r = 5, b = 5, l = 5)
-  ) +
-  labs(
-    title = " ",
-    x = "Jurisdiction",
-    y = "Number of Anomalies"
+    axis.text = element_text(color = "black", size = 8),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 10, face = "bold", margin = margin(r = 5)),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold", size = 12),
+    legend.text = element_text(size = 11),
+    legend.key.size = unit(0.6, "cm"),
+    plot.title = element_text(face = "bold", size = 11),
+    plot.margin = margin(t = 5, r = 5, b = 2, l = 5)
   )
 
-p_anomaly_distribution
+# Create individual panels for each metric with consistent y-axis
+create_metric_panel <- function(metric_name, panel_label, y_max) {
+  plot_data <- anomaly_plot_data %>%
+    filter(metric == metric_name)
+  
+  ggplot(plot_data, aes(x = jurisdiction, y = count, fill = flag_type)) +
+    geom_bar(stat = "identity", position = "stack", color = "black",
+             linewidth = 0.2, width = 0.8) +
+    scale_fill_manual(name = "Anomaly Type", values = flag_colors, labels = flag_labels,
+                      drop = FALSE) +
+    scale_x_discrete(limits = all_jurisdictions, drop = FALSE) +
+    scale_y_continuous(limits = c(0, y_max), expand = expansion(mult = c(0, 0))) +
+    labs(title = paste0(panel_label, " ", metric_name), y = "Count") +
+    theme_panel +
+    guides(fill = guide_legend(nrow = 1))
+}
+
+# Create panels with consistent y-axis
+p_offender <- create_metric_panel("Offender Profiles", "(A)", y_max_global)
+p_forensic <- create_metric_panel("Forensic Profiles", "(B)", y_max_global)
+p_arrestee <- create_metric_panel("Arrestee Profiles", "(C)", y_max_global)
+p_investigations <- create_metric_panel("Investigations Aided", "(D)", y_max_global)
+
+# Combine panels vertically with shared legend at bottom using patchwork
+final_plot <- (p_offender / p_forensic / p_arrestee / p_investigations) +
+  plot_layout(heights = c(1, 1, 1, 1), guides = "collect") +
+  plot_annotation(
+    title = "Anomaly Distribution by Metric and Jurisdiction",
+    theme = theme(
+      plot.title = element_text(face = "bold", size = 14, hjust = 0.5)
+    )
+  ) &
+  theme(legend.position = "bottom")
+
+final_plot
 
 ggsave(
-  filename = file.path(figures_dir, "fig5_anomaly_log.pdf"),
-  plot = p_anomaly_distribution,
-  width = 12,
-  height = 6,
+  filename = file.path(figures_dir, "fig5_anomaly_distribution.pdf"),
+  plot = final_plot,
+  width = 14,
+  height = 16,
   dpi = 300,
   units = "in",
   device = cairo_pdf
+)
+
+ggsave(
+  filename = file.path(figures_dir, "fig5_anomaly_distribution.png"),
+  plot = final_plot,
+  width = 14,
+  height = 16,
+  dpi = 300,
+  units = "in"
 )
 ```
 
-## Figure 6 – Temporal Coverage Heatmaps
+## Figure 6 – Time Gap Analysis
+
+This figure is generated by the `ndis_analysis.qmd` pipeline and shows the temporal gaps in the NDIS snapshot data.
 
 ```{r}
-#| label: fig6-heatmaps
-#| echo: true
+#| label: fig6-time-gap-analysis
+#| echo: false
+#| fig-alt: "Four-panel figure showing time gap analysis: (a) monthly snapshot counts, (b) yearly variance, (c) gap distribution with outliers, (d) gap distribution without outliers."
 
-data_file_raw <- file.path(here("data", "ndis", "intermediate", "ndis_intermediate.csv"))
-ndis_intermediate <- read_csv(data_file_raw, show_col_types = FALSE)
-
-temporal_coverage_intermediate <- ndis_intermediate %>%
-  mutate(year = year(capture_datetime)) %>%
-  count(jurisdiction, year) %>%
-  complete(jurisdiction, year = 2001:2025, fill = list(n = 0)) %>%
-  filter(!is.na(jurisdiction)) %>%
-  mutate(jurisdiction = factor(jurisdiction, levels = rev(sort(unique(jurisdiction)))))
-
-heatmap_raw <- ggplot(temporal_coverage_intermediate, aes(x = year, y = jurisdiction, fill = n)) +
-  geom_tile(color = "white", linewidth = 0.3) +
-  scale_fill_viridis(
-    name = "Snapshots\nper Year",
-    option = "plasma",
-    direction = -1,
-    breaks = c(0, 12, 24, 48),
-    labels = c("0", "12", "24", "48+")
-  ) +
-  scale_x_continuous(
-    breaks = seq(2001, 2025, by = 1),
-    expand = expansion(mult = 0.01)
-  ) +
-  labs(
-    x = NULL,
-    y = "Jurisdiction",
-    title = "A) Raw Snapshots Dataset"
-  ) +
-  theme_minimal(base_size = 10) +
-  theme(
-    panel.grid = element_blank(),
-    axis.text.x = element_text(angle = 90, hjust = 0.75, size = 9),
-    axis.text.y = element_text(size = 9),
-    plot.title = element_text(size = 11, hjust = 0),
-    legend.position = "none",
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(size = 11, margin = margin(r = 10))
-  )
-
-data_file_clean <- file.path(here("data", "ndis", "final", "NDIS_time_series.csv"))
-ndis_clean <- read_csv(data_file_clean, show_col_types = FALSE)
-
-temporal_coverage_clean <- ndis_clean %>%
-  mutate(year = year(capture_datetime)) %>%
-  count(jurisdiction, year) %>%
-  complete(jurisdiction, year = 2001:2025, fill = list(n = 0)) %>%
-  filter(!is.na(jurisdiction)) %>%
-  mutate(jurisdiction = factor(jurisdiction, levels = rev(sort(unique(jurisdiction)))))
-
-heatmap_after_clean <- ggplot(temporal_coverage_clean, aes(x = year, y = jurisdiction, fill = n)) +
-  geom_tile(color = "white", linewidth = 0.3) +
-  scale_fill_viridis(
-    name = "Snapshots per Year",
-    option = "plasma",
-    direction = -1,
-    breaks = c(0, 12, 24, 48),
-    labels = c("0", "12", "24", "48+")
-  ) +
-  scale_x_continuous(
-    breaks = seq(2001, 2025, by = 1),
-    expand = expansion(mult = 0.01)
-  ) +
-  labs(
-    x = NULL,
-    y = NULL,
-    title = "B) Cleaned Snapshots Dataset"
-  ) +
-  theme_minimal(base_size = 10) +
-  theme(
-    panel.grid = element_blank(),
-    axis.text.x = element_text(angle = 90, hjust = 0.75, size = 9),
-    axis.text.y = element_blank(),
-    plot.title = element_text(size = 11, hjust = 0),
-    legend.position = "right",
-    legend.key.height = unit(0.6, "cm"),
-    legend.key.width = unit(0.2, "cm"),
-    legend.text = element_text(size = 9),
-    legend.title = element_text(size = 10, margin = margin(b = 4)),
-    axis.title.x = element_blank(),
-    axis.title.y = element_blank()
-  )
-
-figure_heatmaps <- heatmap_raw + heatmap_after_clean +
-  plot_annotation(
-    title = " ",
-    theme = theme(plot.title = element_text(face = "bold", hjust = 0.5))
-  ) +
-  plot_layout(widths = c(1, 1))
-
-figure_heatmaps
-
-ggsave(
-  filename = file.path(figures_dir, "fig6_heatmap_raw_clean.pdf"),
-  plot = figure_heatmaps,
-  width = 10,
-  height = 7.5,
-  dpi = 300,
-  units = "in",
-  device = cairo_pdf
-)
+knitr::include_graphics(file.path(figures_dir, "fig6_time_gap_analysis.png"))
 ```
 
 ## Table 1 – Published NDIS Benchmarks
@@ -433,20 +413,33 @@ For all other literature sources, please cite the original publications as follo
 #| fig-width: 20
 #| fig-height: 18
 
-ndis_clean <- read_csv(file.path(here("data", "ndis", "final", "NDIS_time_series.csv")), show_col_types = FALSE)
+# Load flagged time series data (long format with flags)
+ndis_clean <- read_csv(file.path(here("data", "ndis", "final", "ndis_time_series.csv")), show_col_types = FALSE)
 
-growth_data_yearly <- ndis_clean %>%
+# Filter out flagged data and pivot to wide format for aggregation
+ndis_clean_wide <- ndis_clean %>%
+  filter(
+    !flag_decimal_spike_dip & 
+    !flag_spike_dip & 
+    !flag_ndis_labs_spike & 
+    !flag_stale_exact_reappearance
+  ) %>%
+  select(capture_datetime, jurisdiction, metric_type, value) %>%
+  pivot_wider(names_from = metric_type, values_from = value, values_fn = max)
+
+growth_data_yearly <- ndis_clean_wide %>%
   mutate(year = year(capture_datetime)) %>%
   group_by(jurisdiction, year) %>%
-  arrange(jurisdiction, capture_datetime) %>%
-  mutate(
-    selection_priority = case_when(
-      year <= 2018 ~ arrestee,
-      year > 2018 ~ offender_profiles
-    )
+  summarise(
+    offender_profiles = max(offender_profiles, na.rm = TRUE),
+    arrestee = max(arrestee, na.rm = TRUE),
+    forensic_profiles = max(forensic_profiles, na.rm = TRUE),
+    investigations_aided = max(investigations_aided, na.rm = TRUE),
+    .groups = "drop"
   ) %>%
-  slice_max(order_by = selection_priority, n = 1, with_ties = FALSE) %>%
-  ungroup() %>%
+  # Handle Inf values from max on empty groups
+  mutate(across(c(offender_profiles, arrestee, forensic_profiles, investigations_aided), 
+                ~ifelse(is.infinite(.), NA, .))) %>%
   group_by(year) %>%
   summarise(
     offender_total = sum(offender_profiles, na.rm = TRUE),

@@ -15,9 +15,28 @@ command -v quarto >/dev/null 2>&1 || { echo "Error: Quarto is not installed. Ple
 echo "✓ Prerequisites found"
 echo ""
 
-# Install Python dependencies
+# Create Python virtual environment if it doesn't exist
+VENV_DIR="$PROJECT_ROOT/.venv"
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating Python virtual environment..."
+    python3 -m venv "$VENV_DIR"
+    echo "✓ Virtual environment created at $VENV_DIR"
+else
+    echo "✓ Virtual environment already exists at $VENV_DIR"
+fi
+echo ""
+
+# Activate virtual environment and install Python dependencies
 echo "Installing Python dependencies..."
-python3 -m pip install -r "$SCRIPT_DIR/requirements.txt"
+source "$VENV_DIR/bin/activate"
+pip install --upgrade pip
+pip install -r "$SCRIPT_DIR/requirements-analysis.txt"
+echo ""
+
+# Register Jupyter kernel for Quarto
+echo "Registering Jupyter kernel..."
+python -m ipykernel install --user --name=podfridge --display-name="PODFRIDGE (Python)"
+echo "✓ Kernel 'podfridge' registered"
 echo ""
 
 # Install R packages
@@ -26,4 +45,9 @@ Rscript "$SCRIPT_DIR/install.R"
 echo ""
 
 echo "=== Setup Complete ==="
-echo "From project root, run: quarto preview"
+echo ""
+echo "To activate the Python environment manually:"
+echo "  source $VENV_DIR/bin/activate"
+echo ""
+echo "To render the Quarto site:"
+echo "  quarto preview"

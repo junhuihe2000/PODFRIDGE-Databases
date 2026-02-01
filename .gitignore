@@ -186,9 +186,11 @@ cython_debug/
 _freeze/
 
 
-# ~/.gitignore_global 
+# ~/.gitignore_global
 .DS_Store
 
 .Rproj.user
 
 .Rhistory
+
+**/*.quarto_ipynb

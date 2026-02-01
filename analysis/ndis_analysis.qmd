@@ -1,2672 +1,1595 @@
 ---
-title: "NDIS Database"
-subtitle: "Analyzing FBI National DNA Index System Statistics"
-author: "Tina Lasisi | Edited: João P. Donadio"
+title: "NDIS Data Pipeline"
+subtitle: "Processing and Quality Control of NDIS Data"
+author: "Tina Lasisi | Virum Ranka"
 date: today
 format:
   html:
     toc: true
-    toc-depth: 3
-    code-fold: false
+    toc-depth: 4
+    toc-expand: 2
+    code-fold: true
 execute:
   echo: true
   warning: false
-  freeze: auto
-  fig-width: 10
-  fig-height: 7
 ---
 
-### Objectives {#objectives}
-
-Analyze patterns of state and federal participation in NDIS 
-
- - Track which jurisdictions are actively contributing data and identify any geographic disparities in participation levels.
-
-Identify periods of rapid growth or stagnation in DNA profile submissions
-
- - Detect acceleration points and plateaus in the expansion of the national DNA database to understand adoption trends.
-
-Document the expansion of DNA profiles (offender, arrestee, forensic) over time
-
- - Monitor the growth trajectory of different profile categories to assess program effectiveness and resource allocation.
-
-## Setup and Configuration {#setup-configuration}
-
-This section prepares the environment for analysis by:
-
-- Ensuring all required R packages are available
-
-- Loading the NDIS dataset with proper type specifications
-
-- Providing basic data validation checks
-
 ```{r}
-#| label: packages-setup
-#| echo: true
+#| label: r-setup
+#| include: false
+
+# Configure reticulate to use the project venv for Python
+library(reticulate)
+use_virtualenv(here::here(".venv"), required = TRUE)
+```
+
+## 1. Create Intermediate data from raw data
+
+This section processes raw NDIS data to an intermediate stage. Steps:
+
+- Load raw data
+- Clean and aggregate jurisdiction names
+- Parse timestamps and create derived fields
+- Save intermediate dataset
+
+```{python}
+#| label: setup
 #| code-fold: true
 #| code-summary: "Show setup code"
 
-# List of required packages
-required_packages <- c(
-  "tidyverse",    # Data manipulation and visualization
-  "lubridate",    # Date-time manipulation
-  "DT",           # Interactive tables
-  "plotly",       # Interactive visualizations
-  "leaflet",      # Geospatial mapping
-  "kableExtra",   # Enhanced table formatting
-  "scales",       # Axis scaling and formatting
-  "dlookr",       # Data validation and diagnostics
-  "gt",           # Table generation
-  "assertr",      # Data validation and assertions
-  "flextable",    # Enhanced table visualization
-  "ggridges",     # Ridge plots
-  "here",         # File path management
-  "patchwork",    # Data visualization  
-  "scales",       # Plot aesthetics
-  "viridis",      # Color pallete for plots
-  "ggrepel"       # Adjust legend location
-  )
+from pathlib import Path
+import pandas as pd
+import numpy as np
+import re
+import matplotlib.pyplot as plt
 
-# Function to install missing packages
-install_missing <- function(packages) {
-  for (pkg in packages) {
-    if (!requireNamespace(pkg, quietly = TRUE)) {
-      message(paste("Installing missing package:", pkg))
-      install.packages(pkg, dependencies = TRUE)
-    }
-  }
-}
+# Define paths using main data folder structure
+raw_path = Path("../data/ndis/raw/ndis_data_raw.csv")
 
-# Install any missing packages
-install_missing(required_packages)
-
-# Load all packages
-suppressPackageStartupMessages({
-  library(tidyverse)
-  library(lubridate)
-  library(DT)
-  library(plotly)
-  library(leaflet)
-  library(kableExtra)
-  library(scales)
-  library(dlookr)
-  library(gt)
-  library(assertr)
-  library(flextable)
-  library(ggridges)
-  library(here)
-  library(patchwork)
-  library(scales)
-  library(viridis)
-  library(ggrepel)
-})
-
-# Verify all packages loaded successfully
-loaded_packages <- sapply(required_packages, require, character.only = TRUE)
-
-if (all(loaded_packages)) {
-  message("📚 All packages loaded successfully!")
-} else {
-  warning("The following packages failed to load: ", 
-          paste(names(loaded_packages)[!loaded_packages], collapse = ", "))
-}
-
-# Define custom theme for consistent styling across all plots
-theme_ndis <- function(base_size = 11) {
-  theme_minimal(base_size = base_size) +
-    theme(
-      # Axis styling
-      axis.text = element_text(color = "black", size = base_size),
-      axis.title = element_text(size = base_size + 1, face = "bold"),
-      
-      # Plot title and subtitle
-      plot.title = element_text(face = "bold", size = base_size + 3, hjust = 0),
-      plot.subtitle = element_text(size = base_size + 2, hjust = 0),
-      
-      # Legend styling
-      legend.text = element_text(size = base_size - 1),
-      legend.title = element_text(size = base_size, face = "bold"),
-      legend.key.size = unit(0.5, "cm"),
-      
-      # Grid and panel
-      panel.grid.major = element_line(color = "gray90", linewidth = 0.3),
-      panel.grid.minor = element_blank()
-    )
-}
+print(f"Raw data path: {raw_path}")
 ```
 
-### Data Import and Validation {#import-valid}
+### 1.1 Load Raw Data
 
-```{r}
-#| label: csv-reading
-#| echo: true
+```{python}
+#| label: load-raw-data
+
+# Load raw data
+raw_df = pd.read_csv(raw_path, dtype=str)
+raw_df.insert(0, "row_id", np.arange(len(raw_df)))
+
+# Convert numeric columns
+numeric_cols = [
+    "offender_profiles",
+    "arrestee",
+    "forensic_profiles",
+    "ndis_labs",
+    "investigations_aided",
+]
+for col in numeric_cols:
+    raw_df[col] = pd.to_numeric(raw_df[col], errors="coerce")
+
+raw_df["report_month"] = pd.to_numeric(raw_df["report_month"], errors="coerce")
+raw_df["report_year"] = pd.to_numeric(raw_df["report_year"], errors="coerce")
+
+print(f"Loaded {len(raw_df):,} rows")
+print(f"Columns: {list(raw_df.columns)}")
+raw_df.head()
+```
+
+### 1.2 Clean Jurisdiction Names
+
+```{python}
+#| label: clean-jurisdictions
 #| code-fold: true
-#| code-summary: "Show data import code"
+#| code-summary: "Show jurisdiction cleaning code"
 
-# Define expected column structure
-expected_cols <- cols(
-  timestamp = col_character(),
-  report_month = col_character(),
-  report_year = col_character(),
-  jurisdiction = col_character(),
-  offender_profiles = col_double(),
-  arrestee = col_double(),
-  forensic_profiles = col_double(),
-  ndis_labs = col_double(),
-  investigations_aided = col_double()
+# Keep original jurisdiction for reference
+raw_df["jurisdiction_raw"] = raw_df["jurisdiction"]
+
+# Jurisdiction cleaning patterns
+JURISDICTION_PATTERNS = [
+    (r"Alabama$|Alabama Stats", "Alabama"),
+    (r"Alaska$|Alaska Stats", "Alaska"),
+    (r"Arizona$|Arizona Stats", "Arizona"),
+    (r"Arkansas$|Arkansas Stats", "Arkansas"),
+    (r"California$|California Stats", "California"),
+    (r"Colorado$|Colorado Stats", "Colorado"),
+    (r"Connecticut$|Connecticut Stats", "Connecticut"),
+    (r"Delaware$|Delaware Stats", "Delaware"),
+    (r"Florida$|Florida Stats", "Florida"),
+    (r"Georgia$|Georgia Stats", "Georgia"),
+    (r"Hawaii$|Hawaii Stats", "Hawaii"),
+    (r"Idaho$|Idaho Stats", "Idaho"),
+    (r"Illinois$|Illinois Stats", "Illinois"),
+    (r"Indiana$|Indiana Stats", "Indiana"),
+    (r"Iowa$|Iowa Stats", "Iowa"),
+    (r"Kansas$|Kansas Stats", "Kansas"),
+    (r"Kentucky$|Kentucky Stats", "Kentucky"),
+    (r"Louisiana$|Louisiana Stats", "Louisiana"),
+    (r"Maine$|Maine Stats", "Maine"),
+    (r"Maryland$|Maryland Stats", "Maryland"),
+    (r"Massachusetts$|Massachusetts Stats", "Massachusetts"),
+    (r"Michigan$|Michigan Stats", "Michigan"),
+    (r"Minnesota$|Minnesota Stats", "Minnesota"),
+    (r"Mississippi$|Mississippi Stats", "Mississippi"),
+    (r"Missouri$|Missouri Stats", "Missouri"),
+    (r"Montana$|Montana Stats", "Montana"),
+    (r"Nebraska$|Nebraska Stats", "Nebraska"),
+    (r"Nevada$|Nevada Stats", "Nevada"),
+    (r"New Hampshire$|New Hampshire Stats", "New Hampshire"),
+    (r"New Jersey$|New Jersey Stats", "New Jersey"),
+    (r"New Mexico$|New Mexico Stats|Mexico Stats", "New Mexico"),
+    (r"New York$|New York Stats", "New York"),
+    (r"North Carolina$|North Carolina Stats", "North Carolina"),
+    (r"North Dakota$|North Dakota Stats", "North Dakota"),
+    (r"Ohio$|Ohio Stats", "Ohio"),
+    (r"Oklahoma$|Oklahoma Stats", "Oklahoma"),
+    (r"Oregon$|Oregon Stats", "Oregon"),
+    (r"Pennsylvania$|Pennsylvania Stats", "Pennsylvania"),
+    (r"Rhode Island$|Rhode Island Stats", "Rhode Island"),
+    (r"South Carolina$|South Carolina Stats", "South Carolina"),
+    (r"South Dakota$|South Dakota Stats", "South Dakota"),
+    (r"Tennessee$|Tennessee Stats", "Tennessee"),
+    (r"Texas$|Texas Stats", "Texas"),
+    (r"Utah$|Utah Stats", "Utah"),
+    (r"Vermont$|Vermont Stats", "Vermont"),
+    (r"West Virginia$|West Virginia Stats", "West Virginia"),
+    (r"Virginia$|Virginia Stats", "Virginia"),
+    (r"Washington$|Washington State Stats", "Washington"),
+    (r"Wisconsin$|Wisconsin Stats", "Wisconsin"),
+    (r"Wyoming$|Wyoming Stats", "Wyoming"),
+    (r"DC/FBI|Washington DC Stats|Lab", "DC/FBI Lab"),
+    (r"DC/Metro|DC", "DC/Metro PD"),
+    (r"^Army$|U\.S\. Army$|U\.S\. Army Stats", "U.S. Army"),
+    (r"^PR$|Puerto Rico$|Puerto Rico Stats", "Puerto Rico"),
+    (r"Tables by NDIS Participant", "Alabama"),
+]
+
+
+def clean_jurisdiction(value: str) -> str:
+    """Clean jurisdiction name using pattern matching."""
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return value
+    text = str(value).strip()
+    if not text or text.lower() == "nan":
+        return np.nan
+    for pattern, replacement in JURISDICTION_PATTERNS:
+        if re.search(pattern, text, flags=re.IGNORECASE):
+            return replacement
+    return text
+
+
+raw_df["jurisdiction"] = raw_df["jurisdiction"].apply(clean_jurisdiction)
+```
+
+### 1.3 Parse Timestamps and Create Derived Fields
+
+```{python}
+#| label: parse-timestamps
+
+# Parse capture datetime from timestamp
+raw_df["capture_datetime"] = pd.to_datetime(
+    raw_df["timestamp"], format="%Y%m%d%H%M%S", errors="coerce"
 )
 
-# Read data with validation
-ndis_data <- read_csv(
-  here::here("data", "ndis", "raw", "ndis_data_raw.csv"),
-  col_types = expected_cols
+# Calculate total profiles
+raw_df["total_profiles"] = (
+    raw_df["offender_profiles"] + raw_df["arrestee"] + raw_df["forensic_profiles"]
 )
 
+# Create asof_date from report year/month
+raw_df["asof_date"] = pd.to_datetime(
+    {"year": raw_df["report_year"], "month": raw_df["report_month"], "day": 1},
+    errors="coerce",
+)
+
+print(f"Date range: {raw_df['capture_datetime'].min()} to {raw_df['capture_datetime'].max()}")
+raw_df[["timestamp", "capture_datetime", "asof_date", "total_profiles"]].head()
 ```
 
-## Dataset Cleaning {#datacleaning}
+### 1.4 Save Intermediate Dataset
 
-This section outlines the preprocessing steps applied to the raw NDIS data before analysis.
+```{python}
+#| label: save-intermediate
 
-First of all, to ensure consistency for analysis, we fixed jurisdiction names that were not correctly scraped in the dataset as we see here:
+# Sort by jurisdiction and capture datetime
+raw_df = raw_df.sort_values(["jurisdiction", "capture_datetime"])
+print(f"Total rows: {len(raw_df):,}")
 
-```{r}
-#| echo: false
+# Select columns for intermediate dataset
+intermediate_cols = [
+    "capture_datetime",
+    "asof_date",
+    "jurisdiction",
+    "offender_profiles",
+    "arrestee",
+    "forensic_profiles",
+    "total_profiles",
+    "ndis_labs",
+    "investigations_aided",
+    "source_file",
+]
 
-cat(paste(levels(as.factor(ndis_data$jurisdiction)), collapse = ", "))
+ndis_intermediate = raw_df[intermediate_cols].copy()
+
+print(f"Shape: {ndis_intermediate.shape}")
+print(f"\nJurisdictions ({ndis_intermediate['jurisdiction'].nunique()}):")
+print(sorted(ndis_intermediate["jurisdiction"].dropna().unique()))
+ndis_intermediate.head()
 ```
 
-```{r}
-#| label: jurisdiction-clean
-#| echo: true
+### 1.5 Summary
+
+```{python}
+#| label: intermediate-summary
+
+# Summary statistics
+print(" Intermediate Data Summary ")
+print(f"Total rows: {len(ndis_intermediate):,}")
+print(f"Unique jurisdictions: {ndis_intermediate['jurisdiction'].nunique()}")
+print(f"Date range: {ndis_intermediate['capture_datetime'].min().year} to {ndis_intermediate['capture_datetime'].max().year}")
+```
+
+## 2. Time Gaps Analysis
+
+This section visualizes the time gaps between snapshots captured from the wayback machine.
+
+```{python}
+#| label: time-gaps-analysis
+#| fig-width: 14
+#| fig-height: 12
 #| code-fold: true
-#| code-summary: "Show cleaning code (jurisdiction)"
-#| results: hide
+#| code-summary: "Show time gaps visualization code"
 
-# Clean jurisdiction names with Alabama-specific patterns
-ndis_data_jurisdiction <- ndis_data %>%
-  mutate(
-    jurisdiction = case_when(
-      # Standard state names
-      str_detect(jurisdiction, "Alabama$|Alabama Stats") ~ "Alabama",
-      str_detect(jurisdiction, "Alaska$|Alaska Stats") ~ "Alaska",
-      str_detect(jurisdiction, "Arizona$|Arizona Stats") ~ "Arizona",
-      str_detect(jurisdiction, "Arkansas$|Arkansas Stats") ~ "Arkansas",
-      str_detect(jurisdiction, "California$|California Stats") ~ "California",
-      str_detect(jurisdiction, "Colorado$|Colorado Stats") ~ "Colorado",
-      str_detect(jurisdiction, "Connecticut$|Connecticut Stats") ~ "Connecticut",
-      str_detect(jurisdiction, "Delaware$|Delaware Stats") ~ "Delaware",
-      str_detect(jurisdiction, "Florida$|Florida Stats") ~ "Florida",
-      str_detect(jurisdiction, "Georgia$|Georgia Stats") ~ "Georgia",
-      str_detect(jurisdiction, "Hawaii$|Hawaii Stats") ~ "Hawaii",
-      str_detect(jurisdiction, "Idaho$|Idaho Stats") ~ "Idaho",
-      str_detect(jurisdiction, "Illinois$|Illinois Stats") ~ "Illinois",
-      str_detect(jurisdiction, "Indiana$|Indiana Stats") ~ "Indiana",
-      str_detect(jurisdiction, "Iowa$|Iowa Stats") ~ "Iowa",
-      str_detect(jurisdiction, "Kansas$|Kansas Stats") ~ "Kansas",
-      str_detect(jurisdiction, "Kentucky$|Kentucky Stats") ~ "Kentucky",
-      str_detect(jurisdiction, "Louisiana$|Louisiana Stats") ~ "Louisiana",
-      str_detect(jurisdiction, "Maine$|Maine Stats") ~ "Maine",
-      str_detect(jurisdiction, "Maryland$|Maryland Stats") ~ "Maryland",
-      str_detect(jurisdiction, "Massachusetts$|Massachusetts Stats") ~ "Massachusetts",
-      str_detect(jurisdiction, "Michigan$|Michigan Stats") ~ "Michigan",
-      str_detect(jurisdiction, "Minnesota$|Minnesota Stats") ~ "Minnesota",
-      str_detect(jurisdiction, "Mississippi$|Mississippi Stats") ~ "Mississippi",
-      str_detect(jurisdiction, "Missouri$|Missouri Stats") ~ "Missouri",
-      str_detect(jurisdiction, "Montana$|Montana Stats") ~ "Montana",
-      str_detect(jurisdiction, "Nebraska$|Nebraska Stats") ~ "Nebraska",
-      str_detect(jurisdiction, "Nevada$|Nevada Stats") ~ "Nevada",
-      str_detect(jurisdiction, "New Hampshire$|New Hampshire Stats") ~ "New Hampshire",
-      str_detect(jurisdiction, "New Jersey$|New Jersey Stats") ~ "New Jersey",
-      str_detect(jurisdiction, "New Mexico$|New Mexico Stats|Mexico Stats") ~ "New Mexico",
-      str_detect(jurisdiction, "New York$|New York Stats") ~ "New York",
-      str_detect(jurisdiction, "North Carolina$|North Carolina Stats") ~ "North Carolina",
-      str_detect(jurisdiction, "North Dakota$|North Dakota Stats") ~ "North Dakota",
-      str_detect(jurisdiction, "Ohio$|Ohio Stats") ~ "Ohio",
-      str_detect(jurisdiction, "Oklahoma$|Oklahoma Stats") ~ "Oklahoma",
-      str_detect(jurisdiction, "Oregon$|Oregon Stats") ~ "Oregon",
-      str_detect(jurisdiction, "Pennsylvania$|Pennsylvania Stats") ~ "Pennsylvania",
-      str_detect(jurisdiction, "Rhode Island$|Rhode Island Stats") ~ "Rhode Island",
-      str_detect(jurisdiction, "South Carolina$|South Carolina Stats") ~ "South Carolina",
-      str_detect(jurisdiction, "South Dakota$|South Dakota Stats") ~ "South Dakota",
-      str_detect(jurisdiction, "Tennessee$|Tennessee Stats") ~ "Tennessee",
-      str_detect(jurisdiction, "Texas$|Texas Stats") ~ "Texas",
-      str_detect(jurisdiction, "Utah$|Utah Stats") ~ "Utah",
-      str_detect(jurisdiction, "Vermont$|Vermont Stats") ~ "Vermont",
-      str_detect(jurisdiction, "West Virginia$|West Virginia Stats") ~ "West Virginia",
-      str_detect(jurisdiction, "Virginia$|Virginia Stats") ~ "Virginia",
-      str_detect(jurisdiction, "Washington$|Washington State Stats") ~ "Washington",
-      str_detect(jurisdiction, "Wisconsin$|Wisconsin Stats") ~ "Wisconsin",
-      str_detect(jurisdiction, "Wyoming$|Wyoming Stats") ~ "Wyoming",
-      
-      # Special jurisdictions
-      str_detect(jurisdiction, "DC/FBI|Washington DC Stats|Lab") ~ "DC/FBI Lab",
-      str_detect(jurisdiction, "DC/Metro|DC") ~ "DC/Metro PD",
-      str_detect(jurisdiction, "U.S. Army$|U.S. Army Stats") ~ "U.S. Army",
-            str_detect(jurisdiction, "Puerto Rico$|Puerto Rico Stats") ~ "Puerto Rico",
-          
-      str_detect(jurisdiction, "Tables by NDIS Participant") ~ "Alabama", # Default to Alabama
-      
-      TRUE ~ jurisdiction
-    ),
+import matplotlib.pyplot as plt
+
+# Use intermediate data for visualization
+df = ndis_intermediate.copy()
+
+# Combined figure with aligned x-axes (a,b) and labeled outliers in (c)
+fig = plt.figure(figsize=(14, 12))
+
+# Create GridSpec: 3 rows, 2 columns
+gs = fig.add_gridspec(3, 2, height_ratios=[1, 1, 1], hspace=0.35, wspace=0.25)
+
+# ============ Prepare shared data for x-axis alignment ============
+work_shared = df.copy()
+work_shared["capture_datetime"] = pd.to_datetime(work_shared["capture_datetime"], errors="coerce")
+work_shared = work_shared[work_shared["capture_datetime"].notna()]
+
+# Determine global date range for consistent x-axis
+date_min = work_shared["capture_datetime"].min()
+date_max = work_shared["capture_datetime"].max()
+
+# ============ (a) Monthly Snapshot Counts - All Jurisdictions ============
+ax_a = fig.add_subplot(gs[0, :])
+
+work_a = work_shared.copy()
+work_a["capture_month"] = work_a["capture_datetime"].dt.to_period("M").astype(str)
+
+monthly_counts_a = (
+    work_a.groupby("capture_month")
+        .size()
+        .reset_index(name="snapshot_count")
+        .sort_values("capture_month")
+)
+monthly_counts_a["capture_month"] = pd.to_datetime(monthly_counts_a["capture_month"], format="%Y-%m")
+
+ax_a.plot(monthly_counts_a["capture_month"], monthly_counts_a["snapshot_count"],
+          color="#4C78A8", linewidth=1.5)
+ax_a.set_title("(a) Monthly Snapshot Counts (All Jurisdictions)", fontsize=12, fontweight='bold', loc='left')
+ax_a.set_xlabel("")
+ax_a.set_ylabel("Snapshot count")
+ax_a.grid(axis="y", color="0.9", linestyle="--", linewidth=0.7)
+ax_a.set_xlim(date_min, date_max)
+
+# ============ (b) Yearly Variance in Snapshot Counts ============
+ax_b = fig.add_subplot(gs[1, :], sharex=ax_a)
+
+work_b = work_shared.copy()
+work_b["capture_year"] = work_b["capture_datetime"].dt.year
+
+yearly_counts_b = (
+    work_b.groupby(["jurisdiction", "capture_year"])
+        .size()
+        .reset_index(name="snapshot_count")
+)
+
+variance_by_year_b = (
+    yearly_counts_b.groupby("capture_year")["snapshot_count"]
+    .var()
+    .reset_index(name="variance")
+    .sort_values("capture_year")
+)
+
+# Convert years to datetime (mid-year) for alignment with plot (a)
+variance_by_year_b["year_date"] = pd.to_datetime(variance_by_year_b["capture_year"].astype(str) + "-07-01")
+
+ax_b.plot(variance_by_year_b["year_date"], variance_by_year_b["variance"],
+          color="#4C78A8", linewidth=2)
+ax_b.scatter(variance_by_year_b["year_date"], variance_by_year_b["variance"],
+             color="#4C78A8", s=25)
+ax_b.set_title("(b) Yearly Variance in Snapshot Counts Across Jurisdictions", fontsize=12, fontweight='bold', loc='left')
+ax_b.set_xlabel("Date")
+ax_b.set_ylabel("Variance of snapshot count")
+ax_b.grid(axis="y", color="0.9", linestyle="--", linewidth=0.7)
+
+# ============ (c) Gap Distribution WITH Outliers ============
+ax_c = fig.add_subplot(gs[2, 0])
+
+work_c = df.copy()
+work_c["capture_datetime"] = pd.to_datetime(work_c["capture_datetime"], errors="coerce")
+work_c = work_c[work_c["capture_datetime"].notna()]
+work_c = work_c.sort_values(["jurisdiction", "capture_datetime"])
+work_c["gap_days"] = work_c.groupby("jurisdiction")["capture_datetime"].diff().dt.days
+
+gaps_c = work_c.dropna(subset=["gap_days"])
+all_gap_vals_c = gaps_c["gap_days"].values
+
+min_gap_c = all_gap_vals_c.min()
+max_gap_c = all_gap_vals_c.max()
+mean_gap_c = all_gap_vals_c.mean()
+median_gap_c = np.median(all_gap_vals_c)
+
+# Identify top outliers for labeling
+gap_threshold_c = 100
+outlier_df_c = gaps_c[gaps_c["gap_days"] > gap_threshold_c].copy()
+top_outliers_c = outlier_df_c.nlargest(5, "gap_days")[["jurisdiction", "gap_days", "capture_datetime"]]
+
+ax_c.hist(all_gap_vals_c, bins=50, color="#4C78A8", alpha=0.8, edgecolor="white")
+ax_c.axvline(min_gap_c, color="#2ca02c", linewidth=2, linestyle="--", label=f"Min: {min_gap_c:.0f}d")
+ax_c.axvline(max_gap_c, color="#d62728", linewidth=2, linestyle="--", label=f"Max: {max_gap_c:.0f}d")
+ax_c.axvline(mean_gap_c, color="#ff7f0e", linewidth=2, linestyle="-", label=f"Mean: {mean_gap_c:.1f}d")
+ax_c.axvline(median_gap_c, color="#9467bd", linewidth=2, linestyle="-", label=f"Median: {median_gap_c:.1f}d")
+
+# Annotate top outliers
+for i, (_, row) in enumerate(top_outliers_c.iterrows()):
+    if i < 3:  # Label top 3 outliers
+        ax_c.annotate(
+            f"{row['jurisdiction']}\n({row['gap_days']:.0f}d)",
+            xy=(row['gap_days'], 0),
+            xytext=(row['gap_days'] - 200, 5000 + i * 3000),
+            fontsize=8,
+            ha='center',
+            arrowprops=dict(arrowstyle='->', color='#d62728', lw=0.8),
+            color='#d62728'
+        )
+
+ax_c.set_title("(c) Gap Distribution: WITH Outliers", fontsize=11, fontweight='bold', loc='left')
+ax_c.set_xlabel("Days between snapshots")
+ax_c.set_ylabel("Count")
+ax_c.legend(fontsize=8, loc='upper right')
+
+# ============ (d) Gap Distribution WITHOUT Outliers ============
+ax_d = fig.add_subplot(gs[2, 1])
+
+gap_threshold_d = 100
+filtered_gaps_d = all_gap_vals_c[all_gap_vals_c <= gap_threshold_d]
+filtered_mean_d = filtered_gaps_d.mean()
+filtered_median_d = np.median(filtered_gaps_d)
+
+ax_d.hist(filtered_gaps_d, bins=50, color="#4C78A8", alpha=0.8, edgecolor="white")
+ax_d.axvline(filtered_gaps_d.min(), color="#2ca02c", linewidth=2, linestyle="--", label=f"Min: {filtered_gaps_d.min():.0f}d")
+ax_d.axvline(filtered_gaps_d.max(), color="#d62728", linewidth=2, linestyle="--", label=f"Max: {filtered_gaps_d.max():.0f}d")
+ax_d.axvline(filtered_mean_d, color="#ff7f0e", linewidth=2, linestyle="-", label=f"Mean: {filtered_mean_d:.1f}d")
+ax_d.axvline(filtered_median_d, color="#9467bd", linewidth=2, linestyle="-", label=f"Median: {filtered_median_d:.1f}d")
+ax_d.set_title(f"(d) Gap Distribution: WITHOUT Outliers (≤{gap_threshold_d}d)", fontsize=11, fontweight='bold', loc='left')
+ax_d.set_xlabel("Days between snapshots")
+ax_d.set_ylabel("Count")
+ax_d.legend(fontsize=8, loc='upper right')
+
+plt.tight_layout()
+
+# Save figure
+fig_output_dir = Path("../output/figures/manuscript_figures")
+fig_output_dir.mkdir(parents=True, exist_ok=True)
+fig.savefig(fig_output_dir / "fig6_time_gap_analysis.png", dpi=300, bbox_inches='tight')
+fig.savefig(fig_output_dir / "fig6_time_gap_analysis.pdf", bbox_inches='tight')
+print(f"Saved figure to {fig_output_dir}")
+
+# Summary statistics
+outlier_count_d = len(all_gap_vals_c) - len(filtered_gaps_d)
+print(f"Total gaps: {len(all_gap_vals_c):,}")
+print(f"Gaps ≤{gap_threshold_d} days: {len(filtered_gaps_d):,} ({100*len(filtered_gaps_d)/len(all_gap_vals_c):.1f}%)")
+print(f"Outliers (>{gap_threshold_d} days): {outlier_count_d:,} ({100*outlier_count_d/len(all_gap_vals_c):.1f}%)")
+```
+
+## 3. Create Stacked (Long) Format
+
+```{python}
+#| label: create-stacked-format
+
+# Create stacked (long) format from intermediate data
+# ID columns: columns that identify each observation
+id_cols = ["capture_datetime", "asof_date", "jurisdiction", "source_file"]
+
+# Value columns: columns to be stacked into rows
+value_cols = ["offender_profiles", "arrestee", "forensic_profiles", "ndis_labs", "investigations_aided"]
+
+# Melt the dataframe
+intermediate_stacked = pd.melt(
+    ndis_intermediate.drop(columns=["total_profiles"]),
+    id_vars=id_cols,
+    value_vars=value_cols,
+    var_name="metric_type",
+    value_name="value"
+)
+
+# Sort for easier viewing
+intermediate_stacked = intermediate_stacked.sort_values(
+    ["jurisdiction", "capture_datetime", "metric_type"]
+).reset_index(drop=True)
+
+# Save stacked (long) data as intermediate file
+intermediate_path = Path("../data/ndis/intermediate/ndis_intermediate.csv")
+intermediate_path.parent.mkdir(parents=True, exist_ok=True)
+intermediate_stacked.to_csv(intermediate_path, index=False)
+
+print(f"Original shape: {ndis_intermediate.shape}")
+print(f"Stacked shape: {intermediate_stacked.shape}")
+print(f"Saved to: {intermediate_path}")
+print(f"\nMetric types: {intermediate_stacked['metric_type'].unique().tolist()}")
+intermediate_stacked.head(10)
+```
+
+## 4. Apply Flagging Rules
+
+Apply the following flagging rules to detect data quality issues. Rules are applied in sequence, with each subsequent rule aware of flags from previous rules to avoid double-counting. **All comparisons are made against previous UNFLAGGED values only.**
+
+### Recovery Window
+
+All spike/dip rules use a **recovery window of at least 6 months, extended if needed to ensure at least 10 data points**. This dual threshold ensures:
+
+- **6 months minimum**: Transient errors (typos, decimal mistakes, stale cache) should be corrected within this timeframe as the website is refreshed. If a value persists 6+ months, it's likely real.
+- **10 points minimum**: Ensures sufficient sample size to reliably detect the "spike-then-recover" pattern, especially in data-sparse early periods where 6 months might contain only 2-3 snapshots.
+
+### Rule Sequence:
+
+1. **decimal_spike_dip** (8x / 0.125x threshold)
+   - *Applies to*: ALL metrics
+   - *Logic*: Catches decimal place entry errors (e.g., 100,000 entered as 10,000 or 1,000,000)
+
+2. **spike_dip** (2x / 0.5x threshold)  
+   - *Applies to*: offender_profiles, forensic_profiles, arrestee, investigations_aided
+   - *Logic*: Catches doubling/halving typos or transient errors
+
+3. **ndis_labs_spike** (3x / 0.33x threshold)
+   - *Applies to*: ndis_labs ONLY
+   - *Logic*: Lower threshold for small numbers (labs typically range 1-20)
+
+4. **stale_exact_reappearance** (no recovery window needed)
+   - *Applies to*: offender_profiles, forensic_profiles, arrestee
+   - *Logic*: Flags when an EXACT value reappears after higher values were recorded (cached stale data)
+   - *Condition*: Value must be below current max AND be an exact match to a previously seen value
+   - *Exception*: Consecutive identical values are NOT flagged (indicates no change, not stale cache)
+   - *Key insight*: Real corrections would produce NEW lower values, not exact repeats of old values
+
+```{python}
+#| label: apply-flagging-rules
+#| code-fold: true
+#| code-summary: "Show flagging rules code"
+
+# Load stacked data
+df = intermediate_stacked.copy()
+df["capture_datetime"] = pd.to_datetime(df["capture_datetime"], errors="coerce")
+df = df.sort_values(["jurisdiction", "metric_type", "capture_datetime"]).reset_index(drop=True)
+
+# ===== CORE SPIKE/DIP DETECTION FUNCTION =====
+def apply_spike_dip_flags(df, spike_thresh, dip_thresh, flag_name, 
+                           max_days=180, min_points=10,
+                           applicable_metrics=None, existing_flag_cols=None):
+    """
+    Detect spike/dip anomalies with recovery check.
     
-    # Clean up any remaining whitespace
-    jurisdiction = str_trim(jurisdiction)
-     )  %>%
-  
-  # Convert to factor with the 54 levels you want
-  mutate(
-    jurisdiction = factor(jurisdiction,
-                         levels = c(sort(state.name), "Puerto Rico", "DC/FBI Lab", "DC/Metro PD", "U.S. Army"))) %>%
-  
-  # Filter out NA jurisdictions
-  filter(!is.na(jurisdiction))
+    Parameters:
+    - spike_thresh: ratio threshold for spikes (e.g., 8 for 8x increase)
+    - dip_thresh: ratio threshold for dips (e.g., 0.125 for 1/8 decrease)
+    - flag_name: name of the flag column to create
+    - max_days: time window for recovery (days) - default 180 (6 months)
+    - min_points: minimum data points to check - default 10
+    - applicable_metrics: list of metrics to apply to (None = all)
+    - existing_flag_cols: previous flag columns to consider when finding baseline
+    
+    Logic:
+    1. Compare each value to LAST UNFLAGGED value (baseline)
+    2. If ratio exceeds threshold (spike OR dip), look for recovery
+    3. Recovery = value returns to within 50% of baseline (for spike) or ~67% for dip
+    4. Window = 6 months OR 10 data points, whichever is LARGER
+    5. Only flag if recovery occurs within window
+    6. If no recovery within window, treat as real change (update baseline)
+    """
+    df[flag_name] = False
+    
+    for (jurisdiction, metric_type), group_idx in df.groupby(["jurisdiction", "metric_type"]).groups.items():
+        # Skip if not in applicable metrics
+        if applicable_metrics and metric_type not in applicable_metrics:
+            continue
+        
+        group_indices = list(group_idx)
+        n = len(group_indices)
+        
+        values = df.loc[group_indices, "value"].values
+        datetimes = df.loc[group_indices, "capture_datetime"].values
+        
+        # Get existing flags from previous rules (these are already flagged)
+        existing_flags = [False] * n
+        if existing_flag_cols:
+            for col in existing_flag_cols:
+                if col in df.columns:
+                    col_flags = df.loc[group_indices, col].values
+                    for k in range(n):
+                        if col_flags[k]:
+                            existing_flags[k] = True
+        
+        local_flags = [False] * n
+        last_good_value = None
+        
+        i = 0
+        while i < n:
+            # Skip already flagged values - don't use them as baseline
+            if existing_flags[i] or local_flags[i]:
+                i += 1
+                continue
+            
+            curr_val = values[i]
+            
+            # Skip invalid values
+            if curr_val == 0 or pd.isna(curr_val):
+                i += 1
+                continue
+            
+            # Initialize baseline with first valid unflagged value
+            if last_good_value is None:
+                last_good_value = curr_val
+                i += 1
+                continue
+            
+            # Compare to baseline (last unflagged good value)
+            ratio = curr_val / last_good_value
+            is_spike = ratio >= spike_thresh
+            is_dip = ratio <= dip_thresh
+            
+            if is_spike or is_dip:
+                baseline = last_good_value
+                entry_datetime = datetimes[i]
+                region_pos = [i]
+                region_closed = False
+                
+                # Look ahead for recovery
+                # Window = 6 months OR 10 data points, whichever is LARGER
+                # (i.e., continue until BOTH conditions are exceeded)
+                points_checked = 0
+                j = i + 1
+                while j < n:
+                    # Skip already flagged points when looking for recovery
+                    if existing_flags[j] or local_flags[j]:
+                        j += 1
+                        continue
+                    
+                    points_checked += 1
+                    days_elapsed = (datetimes[j] - entry_datetime) / np.timedelta64(1, 'D')
+                    
+                    # Stop only when BOTH: past 6 months AND checked at least 10 points
+                    if days_elapsed > max_days and points_checked > min_points:
+                        break
+                    
+                    next_val = values[j]
+                    if next_val == 0 or pd.isna(next_val):
+                        j += 1
+                        continue
+                    
+                    # Check for recovery (value returns near baseline)
+                    if is_spike:
+                        # Recovery from spike: value drops back down near baseline
+                        if next_val <= baseline * 1.5:  # Within 50% of baseline
+                            region_closed = True
+                            break
+                    else:  # is_dip
+                        # Recovery from dip: value rises back up near baseline
+                        if next_val >= baseline * 0.67:  # Within 33% of baseline
+                            region_closed = True
+                            break
+                    
+                    # This point is still anomalous, add to region
+                    region_pos.append(j)
+                    j += 1
+                
+                if region_closed:
+                    # Flag all points in the anomalous region
+                    for pos in region_pos:
+                        local_flags[pos] = True
+                    # Recovery point becomes the new baseline
+                    last_good_value = values[j] if j < n else last_good_value
+                    i = j + 1
+                else:
+                    # No recovery = real change, update baseline to current value
+                    last_good_value = curr_val
+                    i += 1
+            else:
+                # Normal value, update baseline
+                last_good_value = curr_val
+                i += 1
+        
+        for pos, flag in enumerate(local_flags):
+            if flag:
+                df.loc[group_indices[pos], flag_name] = True
+    
+    return df
 
-```
 
-Updated Jurisdiction names:
-```{r}
-#| label: jurisdiction-clean2
-#| echo: false
-#| eval: true
+# ===== RULE 1: decimal_spike_dip (8x / 0.125x) - ALL metrics =====
+df = apply_spike_dip_flags(
+    df, 
+    spike_thresh=8, 
+    dip_thresh=0.125, 
+    flag_name="flag_decimal_spike_dip", 
+    max_days=180,  # 6 months
+    min_points=10,  # at least 10 points
+    applicable_metrics=None,  # All metrics
+    existing_flag_cols=None
+)
 
-cat(paste(levels(as.factor(ndis_data_jurisdiction$jurisdiction)), collapse = ", "))
-```
+# ===== RULE 2: spike_dip (2x / 0.5x) - specific metrics =====
+df = apply_spike_dip_flags(
+    df, 
+    spike_thresh=2, 
+    dip_thresh=0.5, 
+    flag_name="flag_spike_dip", 
+    max_days=180,  # 6 months
+    min_points=10,  # at least 10 points
+    applicable_metrics=["offender_profiles", "forensic_profiles", "arrestee", "investigations_aided"],
+    existing_flag_cols=["flag_decimal_spike_dip"]
+)
 
-Variables were reformatted into consistent date and time structures.
+# ===== RULE 3: ndis_labs_spike (3x / 0.33x) - ndis_labs only =====
+df = apply_spike_dip_flags(
+    df, 
+    spike_thresh=3, 
+    dip_thresh=0.33, 
+    flag_name="flag_ndis_labs_spike", 
+    max_days=180,  # 6 months
+    min_points=10,  # at least 10 points
+    applicable_metrics=["ndis_labs"],
+    existing_flag_cols=["flag_decimal_spike_dip"]
+)
 
-Key profile counts were combined into a total_profiles measure, and missing reporting periods were filled using available capture information.
+# ===== RULE 4: stale_exact_reappearance - cumulative metrics =====
+def apply_stale_exact_reappearance_flags(df, existing_flag_cols=None):
+    """
+    Detect stale cached data: when an EXACT value reappears after higher values.
+    
+    Logic:
+    - Track history of all unflagged values seen
+    - Track max unflagged value seen so far
+    - If current value < max AND that exact value appeared before → STALE CACHE
+    - EXCEPTION: Consecutive identical values are NOT flagged (indicates no change)
+    - No recovery window needed: the exact match itself is the evidence
+    
+    Key insight: Real corrections would produce NEW values, not exact repeats.
+    A cached stale value will be an exact match to a previous value that appeared
+    earlier in the series (not immediately before).
+    """
+    df["flag_stale_exact_reappearance"] = False
+    
+    applicable_metrics = ["offender_profiles", "forensic_profiles", "arrestee"]
+    
+    for (jurisdiction, metric_type), group_idx in df.groupby(["jurisdiction", "metric_type"]).groups.items():
+        if metric_type not in applicable_metrics:
+            continue
+        
+        group_indices = list(group_idx)
+        n = len(group_indices)
+        
+        values = df.loc[group_indices, "value"].values
+        
+        existing_flags = [False] * n
+        if existing_flag_cols:
+            for col in existing_flag_cols:
+                if col in df.columns:
+                    col_flags = df.loc[group_indices, col].values
+                    for k in range(n):
+                        if col_flags[k]:
+                            existing_flags[k] = True
+        
+        local_flags = [False] * n
+        max_unflagged = None
+        seen_values = set()  # Track all unflagged values seen before
+        prev_val = None  # Track the previous value for consecutive detection
+        
+        for i in range(n):
+            curr_val = values[i]
+            
+            if pd.isna(curr_val) or existing_flags[i] or curr_val == 0:
+                continue
+            
+            if max_unflagged is None:
+                max_unflagged = curr_val
+                seen_values.add(curr_val)
+                prev_val = curr_val
+                continue
+            
+            # Check if this is an exact reappearance of a previous value below max
+            # BUT skip if it's the same as the immediately previous value (consecutive same = no change)
+            if curr_val < max_unflagged and curr_val in seen_values and curr_val != prev_val:
+                # This is stale cached data - flag it!
+                local_flags[i] = True
+                # Don't add flagged value to seen_values or update max
+                # Don't update prev_val for flagged values
+            elif curr_val >= max_unflagged:
+                # New maximum - update and add to seen
+                max_unflagged = curr_val
+                seen_values.add(curr_val)
+                prev_val = curr_val
+            else:
+                # Below max but NOT an exact match (or is consecutive same) - this is a new lower value
+                # Could be a correction or no-change, add to seen_values
+                seen_values.add(curr_val)
+                prev_val = curr_val
+        
+        for pos, flag in enumerate(local_flags):
+            if flag:
+                df.loc[group_indices[pos], "flag_stale_exact_reappearance"] = True
+    
+    return df
 
-Finally, year and month variables were standardized, and the dataset was reordered to ensure a clean, consistent structure for validation and analysis.
+df = apply_stale_exact_reappearance_flags(
+    df, 
+    existing_flag_cols=["flag_decimal_spike_dip", "flag_spike_dip"]
+)
 
-```{r}
-#| label: clean-types
-#| echo: true
-#| code-fold: true
-#| code-summary: "Show cleaning code (general)"
+# ===== SUMMARY =====
+print("=== Flagging Summary ===")
+print(f"Total rows: {len(df):,}")
+print(f"flag_decimal_spike_dip: {df['flag_decimal_spike_dip'].sum():,} ({100*df['flag_decimal_spike_dip'].mean():.2f}%)")
+print(f"flag_spike_dip: {df['flag_spike_dip'].sum():,} ({100*df['flag_spike_dip'].mean():.2f}%)")
+print(f"flag_ndis_labs_spike: {df['flag_ndis_labs_spike'].sum():,} ({100*df['flag_ndis_labs_spike'].mean():.2f}%)")
+print(f"flag_stale_exact_reappearance: {df['flag_stale_exact_reappearance'].sum():,} ({100*df['flag_stale_exact_reappearance'].mean():.2f}%)")
 
-ndis_data <- ndis_data_jurisdiction %>%
-  mutate(
-    capture_datetime = as_datetime(timestamp, format = "%Y%m%d%H%M%S"),
-    total_profiles = offender_profiles + arrestee + forensic_profiles,
-    asof_date = make_date(report_year, report_month, 1)
-  )
+# Combined any-flag count
+any_flag = (
+    df['flag_decimal_spike_dip'] | 
+    df['flag_spike_dip'] | 
+    df['flag_ndis_labs_spike'] |
+    df['flag_stale_exact_reappearance']
+)
+print(f"\nANY FLAG: {any_flag.sum():,} ({100*any_flag.mean():.2f}%)")
 
-ndis_intermediate <- ndis_data %>%
-  select(
-    capture_datetime, asof_date, jurisdiction,
-    offender_profiles, arrestee, forensic_profiles,
-    total_profiles, ndis_labs, investigations_aided
-  ) %>%
-  arrange(jurisdiction, capture_datetime)
-```
+# Save flagged data as the final time series file
+final_path = Path("../data/ndis/final/ndis_time_series.csv")
+final_path.parent.mkdir(parents=True, exist_ok=True)
+df.to_csv(final_path, index=False)
+print(f"\nSaved final time series to: {final_path}")
 
-### Saving Intermediate Cleaned Data {#save-clean}
-
-The cleaned dataset preserves the core NDIS metrics while standardizing temporal and jurisdictional dimensions for consistent analysis. Key structural improvements include:
-
-· **Temporal Standardization**: Unified date handling with capture_datetime for data extraction timing and asof_month/asof_year for reported periods
-
-· **Jurisdictional Harmonization**: Normalized 54 jurisdiction names (50 states + Puerto Rico, DC/FBI Lab, DC/Metro PD, U.S. Army) using consistent naming conventions
-
-· **Derived Metrics**: Added total_profiles as the sum of offender, arrestee, and forensic profiles for comprehensive trend analysis
-
-· **Data Integrity**: Removed ambiguous records and ensured proper typing for analytical operations
-
-```{r}
-#| label: save-clean
-#| echo: true
-#| code-fold: true
-#| code-summary: "Show intermediate dataset saving code"
-
-# Glimpse
-
-enhanced_glimpse <- function(df) {
-  glimpse_data <- data.frame(
-    Column = names(df),
-    Type = sapply(df, function(x) paste(class(x), collapse = ", ")),
-    Rows = nrow(df),
-    Missing = sapply(df, function(x) sum(is.na(x))),
-    Unique = sapply(df, function(x) length(unique(x))),
-    First_Values = sapply(df, function(x) {
-      if(is.numeric(x)) {
-        paste(round(head(x, 3), 2), collapse = ", ")
-      } else {
-        paste(encodeString(head(as.character(x), 3)), collapse = ", ")
-      }
-    })
-  )
-  
-  ft <- flextable(glimpse_data) %>%
-    theme_zebra() %>%
-    set_caption(paste("Enhanced Data Glimpse:", deparse(substitute(df)))) %>%
-    autofit() %>%
-    align(align = "left", part = "all") %>%
-    colformat_num(j = c("Rows", "Missing", "Unique"), big.mark = "") %>%
-    bg(j = "Missing", bg = function(x) ifelse(x > 0, "#FFF3CD", "transparent")) %>%
-    bg(j = "Unique", bg = function(x) ifelse(x == 1, "#FFF3CD", "transparent")) %>%
-    add_footer_lines(paste("Data frame dimensions:", nrow(df), "rows ×", ncol(df), "columns")) %>%
-    fontsize(size = 10, part = "all") %>%
-    set_table_properties(layout = "autofit", width = 1)
-  
-  return(ft)
+# ===== CREATE ANOMALY LOG =====
+# Create anomaly_log.csv with all flagged rows for downstream analysis
+metric_display_names = {
+    "offender_profiles": "Offender Profiles",
+    "forensic_profiles": "Forensic Profiles",
+    "arrestee": "Arrestee Profiles",
+    "investigations_aided": "Investigations Aided",
+    "ndis_labs": "NDIS Labs"
 }
 
-enhanced_glimpse(ndis_intermediate)
+# Get all flagged rows
+flagged_rows = df[any_flag].copy()
 
-# Save cleaned data to CSV
-write_csv(ndis_intermediate, here::here("data", "ndis", "intermediate", "ndis_intermediate.csv"))
+# Determine flag type for each row (use first matching flag)
+def get_flag_type(row):
+    if row['flag_decimal_spike_dip']:
+        return 'decimal_spike_dip'
+    elif row['flag_spike_dip']:
+        return 'spike_dip'
+    elif row['flag_ndis_labs_spike']:
+        return 'ndis_labs_spike'
+    elif row['flag_stale_exact_reappearance']:
+        return 'stale_exact_reappearance'
+    return 'unknown'
 
-message("✅ Intermediate dataset saved to 'data/ndis/intermediate' folder")
+flagged_rows['flag_type'] = flagged_rows.apply(get_flag_type, axis=1)
+flagged_rows['metric'] = flagged_rows['metric_type'].map(metric_display_names)
 
+# Select columns for anomaly log
+anomaly_log = flagged_rows[[
+    'jurisdiction', 'metric', 'metric_type', 'capture_datetime', 'value',
+    'flag_type', 'flag_decimal_spike_dip', 'flag_spike_dip', 
+    'flag_ndis_labs_spike', 'flag_stale_exact_reappearance'
+]].copy()
+
+# Save anomaly log
+anomaly_log_path = Path("../data/ndis/intermediate/anomaly_log.csv")
+anomaly_log.to_csv(anomaly_log_path, index=False)
+print(f"\nSaved anomaly log to: {anomaly_log_path}")
+print(f"Total anomalies logged: {len(anomaly_log):,}")
+
+# Summary by metric
+print("\nAnomalies by metric:")
+print(anomaly_log.groupby('metric').size().sort_values(ascending=False))
+
+df.head(10)
 ```
 
-### Raw Data Distribution
+## 5. Visualization: Flagged Time Series
 
-```{r}
-#| label: raw-data-visualization
-#| echo: true
+Visualize time series for ALL jurisdictions, organized by metric.
+
+**Color Legend:**
+
+- Blue: Normal (unflagged) points
+- Red: decimal_spike_dip (8x/0.125x errors)
+- Orange: spike_dip (2x/0.5x errors)
+- Green: ndis_labs_spike (3x errors for small numbers)
+- Yellow: stale_exact_reappearance (cached stale values)
+
+```{python}
+#| label: viz-setup
 #| code-fold: true
-#| code-summary: "Show raw data visualization code"
+#| code-summary: "Show visualization setup code"
 
-# Heatmap
-temporal_coverage_intermediate <-  ndis_intermediate %>%
-  mutate(year = year(capture_datetime)) %>%
-  count(jurisdiction, year) %>%
-  complete(jurisdiction, year = 2001:2025, fill = list(n = 0)) %>%
-  filter(!is.na(jurisdiction)) %>%
-  mutate(jurisdiction = factor(jurisdiction, levels = rev(sort(unique(jurisdiction)))))
+# Get all jurisdictions alphabetically
+jurisdictions_sorted = sorted(df["jurisdiction"].dropna().unique())
 
-heatmap_raw <- ggplot(temporal_coverage_intermediate, aes(x = year, y = jurisdiction, fill = n)) +
-  geom_tile(color = "white", linewidth = 0.3) +
-  scale_fill_viridis(
-    name = "Snapshots\nper Year",
-    option = "plasma",
-    direction = -1,
-    breaks = c(0, 12, 24, 48),
-    labels = c("0", "12", "24", "48+")
-  ) +
-  scale_x_continuous(
-    breaks = seq(2001, 2025, by = 1),
-    expand = expansion(mult = 0.01)
-  ) +
-  labs(
-    x = "Year",
-    y = "Jurisdiction",
-    title = " "
-  ) +
-  theme_ndis(base_size = 11) +
-  theme(
-    panel.grid = element_blank(),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "right",
-    legend.key.height = unit(0.6, "cm"), 
-    legend.key.width = unit(0.2, "cm")
-  )
+# Calculate global date range across ALL metrics for consistent x-axes
+global_date_min = df["capture_datetime"].min()
+global_date_max = df["capture_datetime"].max()
+print(f"Global date range: {global_date_min} to {global_date_max}")
+print(f"Jurisdictions: {len(jurisdictions_sorted)} total")
 
-heatmap_raw
+# Color scheme - each flag gets a unique color
+COLORS = {
+    "normal": "#4C78A8",               # Blue
+    "decimal_spike_dip": "#D62728",    # Red
+    "spike_dip": "#FF7F0E",            # Orange
+    "ndis_labs_spike": "#2CA02C",      # Green
+    "stale_exact": "#BCBD22"           # Yellow-green
+}
+
+# Human-readable number formatter for y-axis
+from matplotlib.ticker import FuncFormatter
+
+def human_format(x, pos):
+    """Format large numbers as K, M, B"""
+    if x >= 1e9:
+        return f'{x/1e9:.1f}B'
+    elif x >= 1e6:
+        return f'{x/1e6:.1f}M'
+    elif x >= 1e3:
+        return f'{x/1e3:.0f}K'
+    else:
+        return f'{x:.0f}'
+
+human_formatter = FuncFormatter(human_format)
+
+def plot_metric_jurisdiction(df, metric, jurisdiction, COLORS, human_formatter, global_date_min, global_date_max):
+    """Plot a single metric-jurisdiction combination with flagged vs clean comparison."""
+    mask = (df["jurisdiction"] == jurisdiction) & (df["metric_type"] == metric)
+    plot_df = df[mask].copy()
+    
+    if len(plot_df) == 0:
+        return None
+    
+    # Create masks for flags (priority order for display: decimal > spike > ndis_labs > stale)
+    decimal_spike_dip_mask = plot_df["flag_decimal_spike_dip"].fillna(False).astype(bool)
+    spike_dip_mask = plot_df["flag_spike_dip"].fillna(False).astype(bool) & ~decimal_spike_dip_mask
+    ndis_labs_spike_mask = plot_df["flag_ndis_labs_spike"].fillna(False).astype(bool) & ~decimal_spike_dip_mask & ~spike_dip_mask
+    stale_exact_mask = plot_df["flag_stale_exact_reappearance"].fillna(False).astype(bool) & ~decimal_spike_dip_mask & ~spike_dip_mask & ~ndis_labs_spike_mask
+    
+    # Calculate any_flag_mask
+    any_flag_mask = decimal_spike_dip_mask | spike_dip_mask | ndis_labs_spike_mask | stale_exact_mask
+    normal_mask = ~any_flag_mask
+    
+    # Create side-by-side figure (flagged vs clean)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 4))
+    marker_size = 30
+    
+    # ===== LEFT PLOT: With flags =====
+    ax1.plot(plot_df["capture_datetime"], plot_df["value"], 
+            color=COLORS["normal"], linewidth=0.8, alpha=0.5, zorder=1)
+    
+    if normal_mask.sum() > 0:
+        ax1.scatter(plot_df.loc[normal_mask, "capture_datetime"], 
+                   plot_df.loc[normal_mask, "value"],
+                   color=COLORS["normal"], s=15, alpha=0.6, label="Normal", zorder=2)
+    
+    if decimal_spike_dip_mask.sum() > 0:
+        ax1.scatter(plot_df.loc[decimal_spike_dip_mask, "capture_datetime"], 
+                   plot_df.loc[decimal_spike_dip_mask, "value"],
+                   color=COLORS["decimal_spike_dip"], s=marker_size, label="decimal_spike_dip", zorder=3)
+    
+    if spike_dip_mask.sum() > 0:
+        ax1.scatter(plot_df.loc[spike_dip_mask, "capture_datetime"], 
+                   plot_df.loc[spike_dip_mask, "value"],
+                   color=COLORS["spike_dip"], s=marker_size, label="spike_dip", zorder=3)
+    
+    if ndis_labs_spike_mask.sum() > 0:
+        ax1.scatter(plot_df.loc[ndis_labs_spike_mask, "capture_datetime"], 
+                   plot_df.loc[ndis_labs_spike_mask, "value"],
+                   color=COLORS["ndis_labs_spike"], s=marker_size, label="ndis_labs_spike", zorder=3)
+    
+    if stale_exact_mask.sum() > 0:
+        ax1.scatter(plot_df.loc[stale_exact_mask, "capture_datetime"], 
+                   plot_df.loc[stale_exact_mask, "value"],
+                   color=COLORS["stale_exact"], s=marker_size, label="stale_exact_reappearance", zorder=3)
+    
+    ax1.set_title(f"{metric} - {jurisdiction} (WITH FLAGS)", fontsize=11, fontweight="bold")
+    ax1.set_xlabel("Date")
+    ax1.set_ylabel("Value")
+    ax1.legend(loc="upper left", fontsize=7, ncol=2)
+    ax1.grid(axis="y", alpha=0.3)
+    
+    # ===== RIGHT PLOT: Clean (flags removed) =====
+    clean_df = plot_df[~any_flag_mask]
+    
+    ax2.plot(clean_df["capture_datetime"], clean_df["value"], 
+            color=COLORS["normal"], linewidth=0.8, alpha=0.5, zorder=1)
+    ax2.scatter(clean_df["capture_datetime"], clean_df["value"],
+               color=COLORS["normal"], s=15, alpha=0.6, label="Clean data", zorder=2)
+    
+    ax2.set_title(f"{metric} - {jurisdiction} (FLAGS REMOVED)", fontsize=11, fontweight="bold")
+    ax2.set_xlabel("Date")
+    ax2.set_ylabel("Value")
+    ax2.legend(loc="upper left", fontsize=7)
+    ax2.grid(axis="y", alpha=0.3)
+    
+    # Match y-axis scales for comparison - start at 0
+    y_max = max(ax1.get_ylim()[1], ax2.get_ylim()[1])
+    ax1.set_ylim(0, y_max)
+    ax2.set_ylim(0, y_max)
+    
+    # Human-readable y-axis formatting
+    ax1.yaxis.set_major_formatter(human_formatter)
+    ax2.yaxis.set_major_formatter(human_formatter)
+    
+    # Set consistent x-axis (full timeline across all metrics)
+    ax1.set_xlim(global_date_min, global_date_max)
+    ax2.set_xlim(global_date_min, global_date_max)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    return any_flag_mask.sum()
+
+print("Visualization functions defined.")
 ```
-
-
-## Variables Growth and Corrections {#data-growth}
-
-The National DNA Index System (NDIS) data for each jurisdiction is expected to show consistent growth over time. However, reporting issues create anomalies that require systematic detection and correction. This section documents the validation framework, with specific rules tailored to each metric following visual verification and analysis of the raw data.
-
-## Detection Rules
-
-### 1. Spike-Dip Detection
-
-A point is flagged as `spike_dip` if it deviates significantly from adjacent observations:
-
-$N_{j,t}^{(x)} \text{ is flagged if any of the following holds:}$
-
-- $N_{j,t}^{(x)} > 2 \times N_{j,t-1}^{(x)}$ (more than double the previous value)
-- $N_{j,t}^{(x)} < 0.5 \times N_{j,t-1}^{(x)}$ (less than half the previous value)
-- $N_{j,t}^{(x)} > 2 \times N_{j,t+1}^{(x)}$ (more than double the next value)
-- $N_{j,t}^{(x)} < 0.5 \times N_{j,t+1}^{(x)}$ (less than half the next value)
-
-A continuation of spike-dip is flagged as `cont_spike_dip` when the previous point was flagged as `spike_dip` AND the current point shows recovery:
-
-$$\text{If } N_{j,t-1}^{(x)} \text{ flag} = \text{spike\_dip AND} \left[ N_{j,t}^{(x)} > 0.5 \times N_{j,t-1}^{(x)} \text{ OR } N_{j,t}^{(x)} < 2 \times N_{j,t-1}^{(x)} \right]$$
-
-**Description:** These flags capture temporary data surges or unexplained dips. A spike followed by recovery to near-normal levels, or isolated low values surrounded by higher values, indicate reporting anomalies rather than real changes in profiles.
-
-### 2. Zero Error Detection
-
-A point is flagged as `zero_error` if a zero appears after positive values:
-
-$$\text{If } N_{j,t}^{(x)} = 0 \text{ AND } N_{j,t-1}^{(x)} > 0$$
-
-Consecutive zeros after an initial error are flagged as `cont_zero_error`:
-
-$$\text{If } N_{j,t}^{(x)} = 0 \text{ AND } N_{j,t-1}^{(x)} \text{ flag} = \text{zero\_error}$$
-
-**Description:** Legitimate DNA profile data cannot drop from positive to zero. When this occurs, it represents a reporting system error. All subsequent zeros until the data recovers to positive values are propagations of the same error and should be marked together.
-
-### 3. Update Lag Detection
-
-A point is flagged as `osc_lag` when values oscillate between similar levels in a compressed timeframe:
-
-$$\text{If } \left[ \left( N_{j,t}^{(x)} < N_{j,t-1}^{(x)} \text{ AND } N_{j,t}^{(x)} < N_{j,t+1}^{(x)} \right) \text{ OR } \left( N_{j,t}^{(x)} = N_{j,t-1}^{(x)} \text{ AND } N_{j,t}^{(x)} < N_{j,t+1}^{(x)} \right) \right.$$
-
-$$\left. \text{OR } \left( N_{j,t}^{(x)} < N_{j,t-1}^{(x)} \text{ AND } N_{j,t}^{(x)} = N_{j,t+1}^{(x)} \right) \right]$$
-
-$$\text{AND } [t - (t-1) \leq 2 \text{ days}] \text{ AND } [(t+1) - t \leq 2 \text{ days}]$$
-
-**Description:** When sequential reports within a 48-hour window show values that decrease or remain flat relative to neighbors, this indicates system synchronization delays where data is updating across multiple databases at different times. The same profile count is being reported inconsistently during the synchronization process.
-
-## Correction Rules
-
-### For `spike_dip` and `cont_spike_dip` Flags
-
-**Action:** Remove the flagged point from the dataset.
-
-**Reason:** Temporary data surges or isolated dips do not represent actual growth in profiles. Removing these points preserves the genuine underlying trend while eliminating reporting artifacts.
-
-### For `zero_error` and `cont_zero_error` Flags
-
-**Action:** Remove all consecutive zero values starting from the first zero that follows a positive value, continuing until the data recovers to positive numbers.
-
-**Reason:** Zeros appearing after positive counts are reporting failures, not real data. Removing the entire sequence of consecutive zeros eliminates the error cascade while preserving the valid trajectory before and after the error window.
-
-### For `osc_lag` Flags
-
-**Action:** Within each oscillation cluster, retain only the highest value and remove all other points in the sequence.
-
-**Reason:** The highest value represents the true data point; lower values in the cluster are transient states during system synchronization. Keeping the maximum preserves the actual profile count while removing the synchronization noise.
-
-### For Legitimate Decreases
-
-**Action:** Preserve all decreases that do not match the patterns above.
-
-**Reason:** Not all decreases are errors. Some reflect genuine profile removals due to expungements, legal stays, or case dismissals. Decreases outside the detection rules represent real changes in the database and should be retained.
-
-## Metric-Specific Validation Rules
 
 ### Offender Profiles
 
-Following visual verification and analysis of the raw data, the following rules were applied to the Offender Profiles metric:
+```{python}
+#| label: viz-offender
+#| code-fold: true
+#| code-summary: "Show offender profiles visualization code"
 
-- **Spike-Dip Detection:** Flags points where values drop below half the previous value or fall below half the next value
-- **Continuation Spike-Dip:** Detects recovery points following flagged anomalies
-- **Zero Error Detection:** Flags any zero value appearing after positive values in the California jurisdiction
-- **Continuation Zero Error:** Tracks consecutive zeros following the initial error
-- **Update Lag Detection:** Identifies oscillations within 5-day windows where current values are lower than or equal to previous/next values
-- **Value Propagation:** Additionally flags any data point with the same value as previously flagged anomalies within the jurisdiction
+metric = "offender_profiles"
+print(f"\n{'='*60}")
+print(f"METRIC: {metric}")
+print(f"{'='*60}")
 
-All flagged points are removed to produce the cleaned dataset.
-
-### Forensic Profiles
-
-Following visual verification and analysis of the raw data, the following rules were applied to the Forensic Profiles metric:
-
-- **Spike-Dip Detection:** Flags points where values drop below half the previous or next value, or exceed 2.5 times the next value
-- **Continuation Spike-Dip:** Detects recovery points following flagged anomalies
-- **Zero Error Detection:** Flags any zero value appearing after positive values
-- **Continuation Zero Error:** Tracks consecutive zeros following the initial error
-- **Update Lag Detection:** Identifies oscillations within 2-day windows where current values are lower than or equal to previous/next values
-- **Value Propagation:** Additionally flags any data point with the same value as previously flagged anomalies within the jurisdiction
-
-All flagged points are removed to produce the cleaned dataset.
+for jurisdiction in jurisdictions_sorted:
+    try:
+        n_flags = plot_metric_jurisdiction(df, metric, jurisdiction, COLORS, human_formatter, global_date_min, global_date_max)
+        if n_flags is not None:
+            print(f"  {jurisdiction}: {n_flags} flags")
+    except Exception as e:
+        print(f"  ERROR plotting {jurisdiction} - {metric}: {e}")
+        plt.close('all')
+```
 
 ### Arrestee Profiles
 
-Following visual verification and analysis of the raw data (filtered to January 1, 2012 onwards), a focused rule set was applied to the Arrestee Profiles metric:
+```{python}
+#| label: viz-arrestee
+#| code-fold: true
+#| code-summary: "Show arrestee profiles visualization code"
 
-- **Zero Error Detection:** Flags zero values appearing after positive values 
-- **No value propagation or other rules were applied** based on the observed data patterns
+metric = "arrestee"
+print(f"\n{'='*60}")
+print(f"METRIC: {metric}")
+print(f"{'='*60}")
 
-All flagged zero error points are removed to produce the cleaned dataset.
+for jurisdiction in jurisdictions_sorted:
+    try:
+        n_flags = plot_metric_jurisdiction(df, metric, jurisdiction, COLORS, human_formatter, global_date_min, global_date_max)
+        if n_flags is not None:
+            print(f"  {jurisdiction}: {n_flags} flags")
+    except Exception as e:
+        print(f"  ERROR plotting {jurisdiction} - {metric}: {e}")
+        plt.close('all')
+```
+
+### Forensic Profiles
+
+```{python}
+#| label: viz-forensic
+#| code-fold: true
+#| code-summary: "Show forensic profiles visualization code"
+
+metric = "forensic_profiles"
+print(f"\n{'='*60}")
+print(f"METRIC: {metric}")
+print(f"{'='*60}")
+
+for jurisdiction in jurisdictions_sorted:
+    try:
+        n_flags = plot_metric_jurisdiction(df, metric, jurisdiction, COLORS, human_formatter, global_date_min, global_date_max)
+        if n_flags is not None:
+            print(f"  {jurisdiction}: {n_flags} flags")
+    except Exception as e:
+        print(f"  ERROR plotting {jurisdiction} - {metric}: {e}")
+        plt.close('all')
+```
 
 ### Investigations Aided
 
-Following visual verification and analysis of the raw data, the following rules were applied to the Investigations Aided metric:
-
-- **Spike-Dip Detection:** Flags points where values increase more than 10-fold relative to the previous value
-- **Continuation Spike-Dip:** Detects recovery points following flagged anomalies
-- **Zero Error Detection:** Flags any zero value appearing after positive values
-- **Continuation Zero Error:** Tracks consecutive zeros following the initial error
-- **Value Propagation:** Additionally flags any data point with the same value as previously flagged anomalies within the jurisdiction
-
-All flagged points are removed to produce the cleaned dataset.
-
-### Participating Laboratories (NDIS Labs)
-
-Following visual verification and analysis of the raw data, jurisdiction-specific rules were applied to the Participating Laboratories metric:
-
-- **Spike-Dip Detection (Oklahoma):** Flags points where the value increases more than 3-fold relative to the previous value
-- **Spike-Dip Detection (Michigan):** Flags points where the value drops to 25% or less of the previous value
-- **Continuation Spike-Dip:** Detects recovery points following flagged anomalies
-- **No value propagation rule applied** for this metric
-
-All flagged points are removed to produce the cleaned dataset.
-
----
-
-Note: All metrics employ a data deduplication step that retains only the first observation for each jurisdiction within the same capture datetime (rounded to seconds). Yearly summaries report the maximum value per jurisdiction per year, then aggregate across jurisdictions.
-
----
-
-## Offender Profiles Correction
-
-```{r}
-#| label: offender-plots-correction
-#| echo: true
+```{python}
+#| label: viz-investigations
 #| code-fold: true
-#| code-summary: "Show Offender profiles visualization and correction code"
+#| code-summary: "Show investigations aided visualization code"
 
-# Filtering for ndis_labs > 0 and deduplication for same jurisdiction in the same capture_datetime
-ndis_intermediate <- ndis_intermediate %>%
-  mutate(capture_datetime = lubridate::round_date(capture_datetime, "second")) %>%
-  group_by(jurisdiction, capture_datetime) %>%
-  slice(1) %>%
-  ungroup()
+metric = "investigations_aided"
+print(f"\n{'='*60}")
+print(f"METRIC: {metric}")
+print(f"{'='*60}")
 
-#### Raw Offender profiles plot
-
-# Flag anomalies for offender profiles using formal detection rules
-offender_validation <- ndis_intermediate %>%
-  arrange(jurisdiction, capture_datetime) %>%
-  group_by(jurisdiction) %>%
-  mutate(
-    prev_value = lag(offender_profiles),
-    next_value = lead(offender_profiles),
-    
-    # Time between observations (in days)
-    days_prev = as.numeric(difftime(capture_datetime, lag(capture_datetime), units = "days")),
-    days_next = as.numeric(difftime(lead(capture_datetime), capture_datetime, units = "days")),
-    
-    # Rule 1: Spike-Dip Detection
-    # Flag if: (N_t > 2*N_{t-1}) OR (N_t < 0.5*N_{t-1}) OR (N_t > 2*N_{t+1}) OR (N_t < 0.5*N_{t+1})
-    flag_spike_dip = (
-      (!is.na(prev_value) & offender_profiles < 0.5 * prev_value) |
-      (!is.na(next_value) & offender_profiles < 0.5 * next_value)
-    ),
-    
-    # Continuation of spike-dip: previous was flagged AND current shows recovery
-    prev_was_spike_dip = lag(flag_spike_dip),
-    flag_cont_spike_dip = (
-      !is.na(prev_was_spike_dip) & prev_was_spike_dip &
-      ((!is.na(prev_value) & offender_profiles > 0.5 * prev_value & offender_profiles < 2 * prev_value) |
-      (!is.na(prev_value) & offender_profiles == prev_value))
-    ),
-    
-    # Rule 2: Zero Error Detection
-    # Flag if: (N_t == 0 AND N_{t-1} > 0)
-    flag_zero_error = (
-      offender_profiles == 0 & !is.na(prev_value) & prev_value > 0
-    ),
-    
-    # Continuation of zero error: previous was flagged zero error AND current is zero
-    prev_was_zero_error = lag(flag_zero_error),
-    flag_cont_zero_error = (
-      offender_profiles == 0 & !is.na(prev_was_zero_error) & prev_was_zero_error
-    ),
-    
-    # Rule 3: Update Lag Detection (oscillation)
-    # Flag if: [(N_t < N_{t-1} AND N_t < N_{t+1}) OR (N_t == N_{t-1} AND N_t < N_{t+1}) OR (N_t < N_{t-1} AND N_t == N_{t+1})]
-    # AND [days_prev <= 2 AND days_next <= 2]
-    flag_osc_lag = (
-      !is.na(prev_value) & !is.na(next_value) &
-      (
-        (offender_profiles < prev_value & offender_profiles < next_value) |
-        (offender_profiles < prev_value & offender_profiles == next_value)
-      ) &
-      (!is.na(days_next) & days_next <= 5)
-    ),
-
-    prev_was_osc_lag = lag(flag_osc_lag),
-
-    flag_cont_osc_lag = (
-      !is.na(prev_was_osc_lag) & prev_was_osc_lag &
-      !is.na(prev_value) & offender_profiles == prev_value
-    ),
-
-    # Combine all anomaly flags
-    flag_any = flag_spike_dip | flag_cont_spike_dip | flag_zero_error | flag_cont_zero_error | flag_osc_lag,
-    
-    # Replace NA with FALSE
-    across(starts_with("flag_"), ~ifelse(is.na(.), FALSE, .)),
-
-    # --- New rule: propagate by metric value within jurisdiction ---
-    # TRUE if this offender_profiles value appears among the flagged values in this jurisdiction
-    flag_same_value_propagate = ifelse(
-      is.na(offender_profiles), 
-      FALSE,
-      offender_profiles %in% offender_profiles[flag_any]
-    ),
-
-    # Update final flag_any to include this propagated-by-value flag
-    flag_any = flag_any | flag_same_value_propagate
-  ) %>%
-  ungroup()
-
-# Create initial interactive plot for offender profiles with flagged points by type
-p_offender_raw <- offender_validation %>%
-  plot_ly(x = ~capture_datetime, y = ~offender_profiles, color = ~jurisdiction, 
-          type = 'scatter', mode = 'lines+markers', alpha = 0.7,
-          name = ~jurisdiction) %>%
-  add_markers(data = offender_validation %>% filter(flag_any),
-              x = ~capture_datetime, y = ~offender_profiles,
-              marker = list(size = 12, symbol = 'x', color = "red",
-                           line = list(width = 3, color = 'red'))) %>%
-  layout(title = "Convicted Offender Profiles - Raw Data (Flagged Points Marked)",
-         xaxis = list(title = "Date and Time",
-         tickformat = "%Y-%m-%d %H:%M"),
-         yaxis = list(title = "Offender Profiles"))
-
-p_offender_raw
-
-#### Offender Profiles Correction #####
-
-# Correction for spike_dip and cont_spike_dip: Remove flagged points
-offender_clean <- offender_validation %>%
-  filter(!(flag_any)) %>%
-  select(-starts_with("flag_"), -starts_with("prev_"), -starts_with("days_"), -next_value)
-
-# Plot cleaned data
-p_offender_clean <- offender_clean %>%
-  plot_ly(x = ~capture_datetime, y = ~offender_profiles, color = ~jurisdiction, 
-          type = 'scatter', mode = 'lines+markers', alpha = 0.7) %>%
-  layout(title = "Convicted Offender Profiles - Cleaned Data",
-         xaxis = list(title = "Date"),
-         yaxis = list(title = "Offender Profiles"))
-
-p_offender_clean
-
-# Summarise highest offender profile per jurisdiction per year
-offender_yearly <- offender_clean %>%
-  mutate(year = year(capture_datetime)) %>%
-  group_by(jurisdiction, year) %>%
-  summarise(max_offender = max(offender_profiles, na.rm = TRUE), .groups = "drop") %>%
-  group_by(year) %>%
-  summarise(total_max_offender = sum(max_offender, na.rm = TRUE), .groups = "drop")
-
-# Plot yearly sums
-p_offender_yearly <- offender_yearly %>%
-  plot_ly(x = ~year, y = ~total_max_offender,
-          type = 'scatter', mode = 'lines+markers',
-          line = list(color = "steelblue", width = 3),
-          marker = list(size = 8, color = "darkred")) %>%
-  layout(title = "Yearly Sum of Max Offender Profiles per Jurisdiction",
-         xaxis = list(title = "Year"),
-         yaxis = list(title = "Total Max Offender Profiles"))
-
-p_offender_yearly
-
+for jurisdiction in jurisdictions_sorted:
+    try:
+        n_flags = plot_metric_jurisdiction(df, metric, jurisdiction, COLORS, human_formatter, global_date_min, global_date_max)
+        if n_flags is not None:
+            print(f"  {jurisdiction}: {n_flags} flags")
+    except Exception as e:
+        print(f"  ERROR plotting {jurisdiction} - {metric}: {e}")
+        plt.close('all')
 ```
 
-## Forensic Profiles Correction
+### NDIS Labs
 
-```{r}
-#| label: forensic-plots-correction
-#| echo: true
+```{python}
+#| label: viz-labs
 #| code-fold: true
-#| code-summary: "Show Forensic profiles visualization and correction code"
+#| code-summary: "Show NDIS labs visualization code"
 
-#### Raw Forensic profiles plot
+metric = "ndis_labs"
+print(f"\n{'='*60}")
+print(f"METRIC: {metric}")
+print(f"{'='*60}")
 
-# Flag anomalies for forensic profiles using formal detection rules
-forensic_validation <- ndis_intermediate %>%
-  arrange(jurisdiction, capture_datetime) %>%
-  group_by(jurisdiction) %>%
-  mutate(
-    prev_value = lag(forensic_profiles),
-    next_value = lead(forensic_profiles),
-    
-    # Time between observations (in days)
-    days_prev = as.numeric(difftime(capture_datetime, lag(capture_datetime), units = "days")),
-    days_next = as.numeric(difftime(lead(capture_datetime), capture_datetime, units = "days")),
-    
-    # Rule 1: Spike-Dip Detection
-    # Flag if: (N_t > 2*N_{t-1}) OR (N_t < 0.5*N_{t-1}) OR (N_t > 2*N_{t+1}) OR (N_t < 0.5*N_{t+1})
-    flag_spike_dip = (
-      (!is.na(prev_value) & forensic_profiles < 0.5 * prev_value) |
-      (!is.na(next_value) & forensic_profiles < 0.5 * next_value) |
-      (!is.na(next_value) & forensic_profiles > 2.5 * next_value)
-    ),
-    
-    # Continuation of spike-dip: previous was flagged AND current shows recovery
-    prev_was_spike_dip = lag(flag_spike_dip),
-    flag_cont_spike_dip = (
-      !is.na(prev_was_spike_dip) & prev_was_spike_dip &
-      ((!is.na(prev_value) & forensic_profiles > 0.5 * prev_value & forensic_profiles < 2 * prev_value) |
-      (!is.na(prev_value) & forensic_profiles == prev_value))
-    ),
-    
-    # Rule 2: Zero Error Detection
-    # Flag if: (N_t == 0 AND N_{t-1} > 0)
-    flag_zero_error = (
-      forensic_profiles == 0 & !is.na(prev_value) & prev_value > 0
-    ),
-    
-    # Continuation of zero error: previous was flagged zero error AND current is zero
-    prev_was_zero_error = lag(flag_zero_error),
-    flag_cont_zero_error = (
-      forensic_profiles == 0 & !is.na(prev_was_zero_error) & prev_was_zero_error
-    ),
-    
-    # Rule 3: Update Lag Detection (oscillation)
-    # Flag if: [(N_t < N_{t-1} AND N_t < N_{t+1}) OR (N_t == N_{t-1} AND N_t < N_{t+1}) OR (N_t < N_{t-1} AND N_t == N_{t+1})]
-    # AND [days_prev <= 2 AND days_next <= 2]
-    flag_osc_lag = (
-      !is.na(prev_value) & !is.na(next_value) &
-      (
-        (forensic_profiles < prev_value & forensic_profiles < next_value) |
-        (forensic_profiles < prev_value & forensic_profiles == next_value)
-      ) &
-      (!is.na(days_next) & days_next <= 2)
-    ),
-
-    prev_was_osc_lag = lag(flag_osc_lag),
-
-    flag_cont_osc_lag = (
-      !is.na(prev_was_osc_lag) & prev_was_osc_lag &
-      !is.na(prev_value) & forensic_profiles == prev_value
-    ),
-
-    # Combine all anomaly flags
-    flag_any = flag_spike_dip | flag_cont_spike_dip | flag_zero_error | flag_cont_zero_error | flag_osc_lag,
-    
-    # Replace NA with FALSE
-    across(starts_with("flag_"), ~ifelse(is.na(.), FALSE, .)),
-
-    # --- New rule: propagate by metric value within jurisdiction ---
-    # TRUE if this forensic_profiles value appears among the flagged values in this jurisdiction
-    flag_same_value_propagate = ifelse(
-      is.na(forensic_profiles), 
-      FALSE,
-      forensic_profiles %in% forensic_profiles[flag_any]
-    ),
-
-    # Update final flag_any to include this propagated-by-value flag
-    flag_any = flag_any | flag_same_value_propagate
-  ) %>%
-  ungroup()
-
-# Create initial interactive plot for forensic profiles with flagged points by type
-p_forensic_raw <- forensic_validation %>%
-  plot_ly(x = ~capture_datetime, y = ~forensic_profiles, color = ~jurisdiction, 
-          type = 'scatter', mode = 'lines+markers', alpha = 0.7,
-          name = ~jurisdiction) %>%
-  add_markers(data = forensic_validation %>% filter(flag_any),
-              x = ~capture_datetime, y = ~forensic_profiles,
-              marker = list(size = 12, symbol = 'x', color = "red",
-                           line = list(width = 3, color = 'red'))) %>%
-  layout(title = "Forensic Profiles - Raw Data (Flagged Points Marked)",
-         xaxis = list(title = "Date and Time",
-         tickformat = "%Y-%m-%d %H:%M"),
-         yaxis = list(title = "Forensic Profiles"))
-
-p_forensic_raw
-
-#### Forensic Profiles Correction #####
-
-# Correction for spike_dip and cont_spike_dip: Remove flagged points
-forensic_clean <- forensic_validation %>%
-  filter(!(flag_any)) %>%
-  select(-starts_with("flag_"), -starts_with("prev_"), -starts_with("days_"), -next_value)
-
-# Plot cleaned data
-p_forensic_clean <- forensic_clean %>%
-  plot_ly(x = ~capture_datetime, y = ~forensic_profiles, color = ~jurisdiction, 
-          type = 'scatter', mode = 'lines+markers', alpha = 0.7) %>%
-  layout(title = "Forensic Profiles - Cleaned Data",
-         xaxis = list(title = "Date"),
-         yaxis = list(title = "Forensic Profiles"))
-
-p_forensic_clean
-
-# Summarise highest forensic profile per jurisdiction per year
-forensic_yearly <- forensic_clean %>%
-  mutate(year = year(capture_datetime)) %>%
-  group_by(jurisdiction, year) %>%
-  summarise(max_forensic = max(forensic_profiles, na.rm = TRUE), .groups = "drop") %>%
-  group_by(year) %>%
-  summarise(total_max_forensic = sum(max_forensic, na.rm = TRUE), .groups = "drop")
-
-# Plot yearly sums
-p_forensic_yearly <- forensic_yearly %>%
-  plot_ly(x = ~year, y = ~total_max_forensic,
-          type = 'scatter', mode = 'lines+markers',
-          line = list(color = "steelblue", width = 3),
-          marker = list(size = 8, color = "darkred")) %>%
-  layout(title = "Yearly Sum of Max Forensic Profiles per Jurisdiction",
-         xaxis = list(title = "Year"),
-         yaxis = list(title = "Total Max Forensic Profiles"))
-
-p_forensic_yearly
+for jurisdiction in jurisdictions_sorted:
+    try:
+        n_flags = plot_metric_jurisdiction(df, metric, jurisdiction, COLORS, human_formatter, global_date_min, global_date_max)
+        if n_flags is not None:
+            print(f"  {jurisdiction}: {n_flags} flags")
+    except Exception as e:
+        print(f"  ERROR plotting {jurisdiction} - {metric}: {e}")
+        plt.close('all')
 ```
 
-## Arrestee Profiles Correction
+## 6. Anomaly Summary and Statistics
+
+This section summarizes the anomalies detected by our flagging rules and provides statistics for reporting.
 
 ```{r}
-#| label: arrestee-plots-correction
-#| echo: true
+#| label: anomaly-statistics
 #| code-fold: true
-#| code-summary: "Show Arrestee profiles visualization and correction code"
+#| code-summary: "Show anomaly statistics code"
 
-#### Raw Arrestee profiles plot
+library(tidyverse)
+library(here)
 
-# Flag anomalies for arrestee profiles using formal detection rules
-arrestee_validation <- ndis_intermediate %>%
-  filter(capture_datetime >= as.Date("2012-01-01")) %>%
-  arrange(jurisdiction, capture_datetime) %>%
-  group_by(jurisdiction) %>%
-  mutate(
-    prev_value = lag(arrestee),
-    next_value = lead(arrestee),
-    
-    # Time between observations (in days)
-    days_prev = as.numeric(difftime(capture_datetime, lag(capture_datetime), units = "days")),
-    days_next = as.numeric(difftime(lead(capture_datetime), capture_datetime, units = "days")),
-    
-    # Rule 2: Zero Error Detection
-    # Flag if: (N_t == 0 AND N_{t-1} > 0)
-    flag_zero_error = (
-      arrestee == 0 & !is.na(prev_value) & jurisdiction == "California"
-    ),
+# Load anomaly log
+anomaly_log <- read_csv(here("data", "ndis", "intermediate", "anomaly_log.csv"), show_col_types = FALSE)
 
-    # Combine all anomaly flags
-    flag_any = flag_zero_error,
-    
-    # Replace NA with FALSE
-    across(starts_with("flag_"), ~ifelse(is.na(.), FALSE, .))
-  ) %>%
-  ungroup()
-
-# Create initial interactive plot for arrestee profiles with flagged points
-p_arrestee_raw <- arrestee_validation %>%
-  plot_ly(x = ~capture_datetime, y = ~arrestee, color = ~jurisdiction, 
-          type = 'scatter', mode = 'lines+markers', alpha = 0.7,
-          name = ~jurisdiction) %>%
-  add_markers(data = arrestee_validation %>% filter(flag_any),
-              x = ~capture_datetime, y = ~arrestee, 
-              color = ~jurisdiction,
-              marker = list(size = 12, symbol = 'x', 
-                           line = list(width = 3, color = 'red')),
-              name = ~paste0(jurisdiction, " - Flagged"),
-              showlegend = FALSE) %>%
-  layout(title = "Arrestee Profiles - Raw Data (Flagged Points Marked)",
-         xaxis = list(title = "Date"),
-         yaxis = list(title = "Arrestee Profiles"))
-
-p_arrestee_raw
-
-#### Arrestee Profiles Correction #####
-
-arrestee_clean <- arrestee_validation %>%
-  filter(!(flag_any)) %>%
-  select(-starts_with("flag_"), -starts_with("prev_"), -starts_with("days_"), -next_value)
-
-# Plot cleaned data
-p_arrestee_clean <- arrestee_clean %>%
-  plot_ly(x = ~capture_datetime, y = ~arrestee, color = ~jurisdiction, 
-          type = 'scatter', mode = 'lines+markers', alpha = 0.7) %>%
-  layout(title = "Arrestee Profiles - Cleaned Data",
-         xaxis = list(title = "Date"),
-         yaxis = list(title = "Arrestee Profiles"))
-
-p_arrestee_clean
-
-# Summarise highest arrestee profile per jurisdiction per year
-arrestee_yearly <- arrestee_clean %>%
-  mutate(year = year(capture_datetime)) %>%
-  group_by(jurisdiction, year) %>%
-  summarise(max_arrestee = max(arrestee, na.rm = TRUE), .groups = "drop") %>%
-  group_by(year) %>%
-  summarise(total_max_arrestee = sum(max_arrestee, na.rm = TRUE), .groups = "drop")
-
-# Plot yearly sums
-p_arrestee_yearly <- arrestee_yearly %>%
-  plot_ly(x = ~year, y = ~total_max_arrestee,
-          type = 'scatter', mode = 'lines+markers',
-          line = list(color = "purple", width = 3),
-          marker = list(size = 8, color = "magenta")) %>%
-  layout(title = "Yearly Sum of Max Arrestee Profiles per Jurisdiction",
-         xaxis = list(title = "Year"),
-         yaxis = list(title = "Total Max Arrestee Profiles"))
-
-p_arrestee_yearly
-```
-
-## Investigations Aided Correction
-
-```{r}
-#| label: investigations-plots-correction
-#| echo: true
-#| code-fold: true
-#| code-summary: "Show Investigations Aided visualization and correction code"
-
-#### Raw Investigations Aided plot
-
-# Flag anomalies for investigations aided using formal detection rules
-investigations_validation <- ndis_intermediate %>%
-  arrange(jurisdiction, capture_datetime) %>%
-  group_by(jurisdiction) %>%
-  mutate(
-    prev_value = lag(investigations_aided),
-    next_value = lead(investigations_aided),
-    
-    # Time between observations (in days)
-    days_prev = as.numeric(difftime(capture_datetime, lag(capture_datetime), units = "days")),
-    days_next = as.numeric(difftime(lead(capture_datetime), capture_datetime, units = "days")),
-    
-    # Rule 1: Spike-Dip Detection
-    # Flag if: (N_t > 2*N_{t-1}) OR (N_t < 0.5*N_{t-1}) OR (N_t > 2*N_{t+1}) OR (N_t < 0.5*N_{t+1})
-    flag_spike_dip = (
-      (!is.na(prev_value) & investigations_aided > 10 * prev_value)
-    ),
-    
-    # Continuation of spike-dip: previous was flagged AND current shows recovery
-    prev_was_spike_dip = lag(flag_spike_dip),
-    flag_cont_spike_dip = (
-      !is.na(prev_was_spike_dip) & prev_was_spike_dip &
-      ((!is.na(prev_value) & investigations_aided > 0.5 * prev_value & investigations_aided < 2 * prev_value) |
-      (!is.na(prev_value) & investigations_aided == prev_value))
-    ),
-    
-    # Rule 2: Zero Error Detection
-    # Flag if: (N_t == 0 AND N_{t-1} > 0)
-    flag_zero_error = (
-      investigations_aided == 0 & !is.na(prev_value) & prev_value > 0
-    ),
-    
-    # Continuation of zero error: previous was flagged zero error AND current is zero
-    prev_was_zero_error = lag(flag_zero_error),
-    flag_cont_zero_error = (
-      investigations_aided == 0 & !is.na(prev_was_zero_error) & prev_was_zero_error
-    ),
-
-    # Combine all anomaly flags
-    flag_any = flag_spike_dip | flag_cont_spike_dip | flag_zero_error | flag_cont_zero_error,
-    
-    # Replace NA with FALSE
-    across(starts_with("flag_"), ~ifelse(is.na(.), FALSE, .)),
-
-    # --- New rule: propagate by metric value within jurisdiction ---
-    # TRUE if this investigations_aided value appears among the flagged values in this jurisdiction
-    flag_same_value_propagate = ifelse(
-      is.na(investigations_aided), 
-      FALSE,
-      investigations_aided %in% investigations_aided[flag_any]
-    ),
-
-    # Update final flag_any to include this propagated-by-value flag
-    flag_any = flag_any | flag_same_value_propagate
-  ) %>%
-  ungroup()
-
-# Create initial interactive plot for investigations aided with flagged points
-p_investigations_raw <- investigations_validation %>%
-  plot_ly(x = ~capture_datetime, y = ~investigations_aided, color = ~jurisdiction, 
-          type = 'scatter', mode = 'lines+markers', alpha = 0.7,
-          name = ~jurisdiction) %>%
-  add_markers(data = investigations_validation %>% filter(flag_any),
-              x = ~capture_datetime, y = ~investigations_aided, 
-              color = ~jurisdiction,
-              marker = list(size = 12, symbol = 'x', 
-                           line = list(width = 3, color = 'red')),
-              name = ~paste0(jurisdiction, " - Flagged"),
-              showlegend = FALSE) %>%
-  layout(title = "Investigations Aided - Raw Data (Flagged Points Marked)",
-         xaxis = list(title = "Date"),
-         yaxis = list(title = "Investigations Aided"))
-
-p_investigations_raw
-
-#### Investigations Aided Correction #####
-
-# Remove spike_dip and cont_spike_dip
-investigations_clean <- investigations_validation %>%
-  filter(!(flag_any)) %>%
-  select(-starts_with("flag_"), -starts_with("prev_"), -starts_with("days_"), -next_value)
-
-# Plot cleaned data
-p_investigations_clean <- investigations_clean %>%
-  plot_ly(x = ~capture_datetime, y = ~investigations_aided, color = ~jurisdiction, 
-          type = 'scatter', mode = 'lines+markers', alpha = 0.7) %>%
-  layout(title = "Investigations Aided - Cleaned Data",
-         xaxis = list(title = "Date"),
-         yaxis = list(title = "Investigations Aided"))
-
-p_investigations_clean
-
-# Summarise highest investigations_aided per jurisdiction per year
-investigations_yearly <- investigations_clean %>%
-  mutate(year = year(capture_datetime)) %>%
-  group_by(jurisdiction, year) %>%
-  summarise(max_investigations = max(investigations_aided, na.rm = TRUE), .groups = "drop") %>%
-  group_by(year) %>%
-  summarise(total_max_investigations = sum(max_investigations, na.rm = TRUE), .groups = "drop")
-
-# Plot yearly sums
-p_investigations_yearly <- investigations_yearly %>%
-  plot_ly(x = ~year, y = ~total_max_investigations,
-          type = 'scatter', mode = 'lines+markers',
-          line = list(color = "darkblue", width = 3),
-          marker = list(size = 8, color = "red")) %>%
-  layout(title = "Yearly Sum of Max Investigations Aided per Jurisdiction",
-         xaxis = list(title = "Year"),
-         yaxis = list(title = "Total Max Investigations Aided"))
-
-p_investigations_yearly
-```
-
-## Participating Laboratories Correction
-
-```{r}
-#| label: labs-plots-correction
-#| echo: true
-#| code-fold: true
-#| code-summary: "Show Labs visualization and correction code"
-
-#### Raw NDIS Labs plot
-
-# Flag anomalies for ndis_labs using formal detection rules
-labs_validation <- ndis_intermediate %>%
-  arrange(jurisdiction, capture_datetime) %>%
-  group_by(jurisdiction) %>%
-  mutate(
-    prev_value = lag(ndis_labs),
-    next_value = lead(ndis_labs),
-    
-    # Time between observations (in days)
-    days_prev = as.numeric(difftime(capture_datetime, lag(capture_datetime), units = "days")),
-    days_next = as.numeric(difftime(lead(capture_datetime), capture_datetime, units = "days")),
-    
-    # Rule 1: Spike-Dip Detection
-    # Flag if: (N_t > 2*N_{t-1}) OR (N_t < 0.5*N_{t-1}) OR (N_t > 2*N_{t+1}) OR (N_t < 0.5*N_{t+1})
-    flag_spike_dip = (
-      (!is.na(prev_value) & ndis_labs > 3 * prev_value & jurisdiction == "Oklahoma") |
-      (!is.na(prev_value) & ndis_labs <= 0.25 * prev_value & jurisdiction == "Michigan")
-    ),
-    
-    # Continuation of spike-dip: previous was flagged AND current shows recovery
-    prev_was_spike_dip = lag(flag_spike_dip),
-    flag_cont_spike_dip = (
-      !is.na(prev_was_spike_dip) & prev_was_spike_dip &
-      ((!is.na(prev_value) & ndis_labs > 0.5 * prev_value & ndis_labs < 2 * prev_value) |
-      (!is.na(prev_value) & ndis_labs == prev_value))
-    ),
-
-    # Combine all anomaly flags
-    flag_any = flag_spike_dip | flag_cont_spike_dip,
-    
-    # Replace NA with FALSE
-    across(starts_with("flag_"), ~ifelse(is.na(.), FALSE, .))
-  ) %>%
-  ungroup()
-
-
-# Create initial interactive plot for ndis_labs with flagged points
-p_labs_raw <- labs_validation %>%
-  plot_ly(x = ~capture_datetime, y = ~ndis_labs, color = ~jurisdiction, 
-          type = 'scatter', mode = 'lines+markers', alpha = 0.7,
-          name = ~jurisdiction) %>%
-  add_markers(data = labs_validation %>% filter(flag_any),
-              x = ~capture_datetime, y = ~ndis_labs, 
-              color = ~jurisdiction,
-              marker = list(size = 12, symbol = 'x', 
-                           line = list(width = 3, color = 'red')),
-              name = ~paste0(jurisdiction, " - Flagged"),
-              showlegend = FALSE) %>%
-  layout(title = "NDIS Labs - Raw Data (Flagged Points Marked)",
-         xaxis = list(title = "Date"),
-         yaxis = list(title = "NDIS Labs"))
-
-p_labs_raw
-
-#### NDIS Labs Correction #####
-
-# Remove spike_dip and cont_spike_dip
-labs_clean <- labs_validation %>%
-  filter(!(flag_any)) %>%
-  select(-starts_with("flag_"), -starts_with("prev_"), -starts_with("days_"), -next_value)
-
-# Plot cleaned data
-p_labs_clean <- labs_clean %>%
-  plot_ly(x = ~capture_datetime, y = ~ndis_labs, color = ~jurisdiction, 
-          type = 'scatter', mode = 'lines+markers', alpha = 0.7) %>%
-  layout(title = "NDIS Labs - Cleaned Data",
-         xaxis = list(title = "Date"),
-         yaxis = list(title = "NDIS Labs"))
-
-p_labs_clean
-```
-
-## Total Profiles Aggregation and Correction
-
-**Analysis Approach:**
-
-The total profiles metric aggregates all DNA profile types (Offender + Arrestee + Forensic) to provide a comprehensive view of the NDIS database size.
-
-The analysis tracks cumulative growth per jurisdiction, shows individual jurisdiction contributions, and reveals relative database sizes across jurisdictions.
-
-```{r}
-#| label: total-profiles
-#| echo: true
-#| code-fold: true
-#| code-summary: "Show Total Profiles correction code"
-
-# Combine cleaned datasets - preserve all variables
-ndis_joined <- forensic_clean %>%
-  select(jurisdiction, capture_datetime, asof_date, forensic_profiles) %>%
-  distinct(jurisdiction, capture_datetime, .keep_all = TRUE) %>%
-  full_join(
-    arrestee_clean %>%
-      select(jurisdiction, capture_datetime, asof_date, arrestee) %>%
-      distinct(jurisdiction, capture_datetime, .keep_all = TRUE),
-    by = c("jurisdiction", "capture_datetime", "asof_date")
-  ) %>%
-  mutate(arrestee = ifelse(is.na(arrestee), 0, arrestee)) %>%
-  arrange(jurisdiction, capture_datetime)
-
-# Join investigations_aided
-ndis_joined <- ndis_joined %>%
-  inner_join(
-    investigations_clean %>%
-      select(jurisdiction, capture_datetime, asof_date, investigations_aided) %>%
-      distinct(jurisdiction, capture_datetime, .keep_all = TRUE),
-    by = c("jurisdiction", "capture_datetime", "asof_date")
-  ) %>%
-  distinct(jurisdiction, capture_datetime, .keep_all = TRUE)
-
-# Join offender_profiles
-ndis_joined <- ndis_joined %>%
-  inner_join(
-    offender_clean %>%
-      select(jurisdiction, capture_datetime, asof_date, offender_profiles) %>%
-      distinct(jurisdiction, capture_datetime, .keep_all = TRUE),
-    by = c("jurisdiction", "capture_datetime", "asof_date")
-  ) %>%
-  distinct(jurisdiction, capture_datetime, .keep_all = TRUE)
-
-# Join ndis_labs
-ndis_joined <- ndis_joined %>%
-  inner_join(
-    labs_clean %>%
-      select(jurisdiction, capture_datetime, asof_date, ndis_labs) %>%
-      distinct(jurisdiction, capture_datetime, .keep_all = TRUE),
-    by = c("jurisdiction", "capture_datetime", "asof_date")
-  ) %>%
-  distinct(jurisdiction, capture_datetime, .keep_all = TRUE) %>%
-  arrange(jurisdiction, capture_datetime)
-
-# Create final clean dataset with all variables
-ndis_clean <- ndis_joined %>%
-  mutate(
-    year = year(capture_datetime),
-    offender_profiles = ifelse(is.na(offender_profiles), 0, offender_profiles),
-    arrestee = ifelse(is.na(arrestee), 0, arrestee),
-    forensic_profiles = ifelse(is.na(forensic_profiles), 0, forensic_profiles),
-    investigations_aided = ifelse(is.na(investigations_aided), 0, investigations_aided),
-    ndis_labs = ifelse(is.na(ndis_labs), 0, ndis_labs),
-    total_profiles = offender_profiles + arrestee + forensic_profiles
-  ) %>%
-  filter(!(jurisdiction == "California" & arrestee == 0 & year > 2013)) %>%
-  arrange(jurisdiction, capture_datetime)
-
-# Plot cleaned total
-p_total_cleaned <- ndis_clean %>%
-  plot_ly(x = ~capture_datetime, y = ~total_profiles, color = ~jurisdiction, 
-          type = 'scatter', mode = 'lines+markers', alpha = 0.7, connectgaps = TRUE) %>%
-  layout(title = "Total Profiles - Cleaned Data",
-         xaxis = list(title = "Date"),
-         yaxis = list(title = "Total Profiles"))
-
-p_total_cleaned
-
-# Get most recent data for stacked bar plot
-most_recent_date <- max(ndis_clean$capture_datetime, na.rm = TRUE)
-
-profiles_latest <- ndis_clean %>%
-  filter(capture_datetime == most_recent_date) %>%
-  select(jurisdiction, offender_profiles, arrestee, forensic_profiles) %>%
-  pivot_longer(
-    cols = c(offender_profiles, arrestee, forensic_profiles),
-    names_to = "profile_type",
-    values_to = "count"
-  ) %>%
-  mutate(
-    profile_type = case_when(
-      profile_type == "offender_profiles" ~ "Offender Profiles",
-      profile_type == "arrestee" ~ "Arrestee Profiles",
-      profile_type == "forensic_profiles" ~ "Forensic Profiles"
-    )
-  )
-
-p_profiles_stacked <- ggplot(profiles_latest, 
-                             aes(x = jurisdiction, y = count, fill = profile_type)) +
-  geom_bar(stat = "identity", color = "black", linewidth = 0.3) +
-  scale_fill_manual(
-    name = "Profile Type",
-    values = c(
-      "Offender Profiles" = "#1f4e79",
-      "Arrestee Profiles" = "#2e75b6", 
-      "Forensic Profiles" = "#5b9bd5"
-    )
-  ) +
-  scale_y_continuous(
-    labels = function(x) {
-      ifelse(x >= 1e6, paste0(x/1e6, "M"), 
-             ifelse(x >= 1e3, paste0(x/1e3, "K"), x))
-    },
-    limits = c(0, NA),
-    expand = c(0, 0)
-  ) +
-  theme_ndis(base_size = 11) +
-  theme(
-    panel.grid = element_blank(),
-    axis.line = element_line(color = "black", linewidth = 0.4),
-    axis.ticks = element_line(color = "black", linewidth = 0.4),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.key.width = unit(0.4, "cm"),
-    legend.key.height = unit(0.4, "cm"),
-    aspect.ratio = 0.65
-  ) +
-  labs(
-    x = "Jurisdiction",
-    y = "Number of DNA Profiles",
-    title = " "
-  )
-
-p_profiles_stacked
-
-```
-
-## Anomaly Detection and Metadata Logging
-
-This section systematically documents all data anomalies detected during the validation process.
-
-Each flagged observation is recorded with comprehensive metadata including anomaly type, jurisdiction, timestamp, and contextual values.
-
-The log serves as both an audit trail for data quality decisions and a source for transparency reporting.
-
-**Key outputs include:**
-
-- Detailed anomaly records for technical review
-- Summary statistics for quality assessment
-- Visualization of anomaly distribution patterns
-- Formatted summaries for reporting
-
-```{r}
-#| label: anomaly-log
-#| echo: true
-#| code-fold: true
-#| code-summary: "Show anomaly detection and logging code"
-
-### Anomaly Detection and Metadata Logging
-
-# Helper function to ensure all flag columns exist and are properly set to FALSE
-ensure_flag_columns <- function(df) {
-  flag_cols <- c("flag_spike_dip", "flag_cont_spike_dip", "flag_zero_error", 
-                 "flag_cont_zero_error", "flag_osc_lag")
-  
-  for (col in flag_cols) {
-    if (!col %in% names(df)) {
-      df[[col]] <- FALSE
-    } else {
-      df[[col]] <- coalesce(df[[col]], FALSE)
-    }
-  }
-  return(df)
-}
-
-# Function to create standardized anomaly records with formal detection rule names
-create_anomaly_record <- function(metric_name, jurisdiction, date, value, 
-                                 flag_spike_dip = FALSE, flag_cont_spike_dip = FALSE,
-                                 flag_zero_error = FALSE, flag_cont_zero_error = FALSE,
-                                 flag_osc_lag = FALSE, prev_value = NA, next_value = NA) {
-  
-  # Determine primary anomaly type based on flags
-  anomaly_type <- case_when(
-    flag_spike_dip ~ "spike_dip",
-    flag_cont_spike_dip ~ "cont_spike_dip",
-    flag_zero_error ~ "zero_error",
-    flag_cont_zero_error ~ "cont_zero_error",
-    flag_osc_lag ~ "osc_lag",
-    TRUE ~ "other"
-  )
-  
-  data.frame(
-    metric = metric_name,
-    jurisdiction = jurisdiction,
-    date = date,
-    value = value,
-    previous_value = prev_value,
-    next_value = next_value,
-    flag_spike_dip = flag_spike_dip,
-    flag_cont_spike_dip = flag_cont_spike_dip,
-    flag_zero_error = flag_zero_error,
-    flag_cont_zero_error = flag_cont_zero_error,
-    flag_osc_lag = flag_osc_lag,
-    anomaly_type = anomaly_type,
-    stringsAsFactors = FALSE
-  )
-}
-
-# Initialize empty anomaly log
-anomaly_log <- data.frame()
-
-### Offender Profiles Anomalies
-offender_anomalies <- offender_validation %>%
-  filter(flag_any) %>%
-  select(jurisdiction, capture_datetime, offender_profiles, prev_value, next_value,
-         any_of(c("flag_spike_dip", "flag_cont_spike_dip", "flag_zero_error", 
-                  "flag_cont_zero_error", "flag_osc_lag"))) %>%
-  ensure_flag_columns()
-
-if(nrow(offender_anomalies) > 0) {
-  for(i in 1:nrow(offender_anomalies)) {
-    row <- offender_anomalies[i, ]
-    anomaly_record <- create_anomaly_record(
-      metric_name = "Offender Profiles",
-      jurisdiction = row$jurisdiction,
-      date = row$capture_datetime,
-      value = row$offender_profiles,
-      flag_spike_dip = row$flag_spike_dip,
-      flag_cont_spike_dip = row$flag_cont_spike_dip,
-      flag_zero_error = row$flag_zero_error,
-      flag_cont_zero_error = row$flag_cont_zero_error,
-      flag_osc_lag = row$flag_osc_lag,
-      prev_value = row$prev_value,
-      next_value = row$next_value
-    )
-    anomaly_log <- bind_rows(anomaly_log, anomaly_record)
-  }
-}
-
-### Forensic Profiles Anomalies
-forensic_anomalies <- forensic_validation %>%
-  filter(flag_any) %>%
-  select(jurisdiction, capture_datetime, forensic_profiles, prev_value, next_value,
-         any_of(c("flag_spike_dip", "flag_cont_spike_dip", "flag_zero_error", 
-                  "flag_cont_zero_error", "flag_osc_lag"))) %>%
-  ensure_flag_columns()
-
-if(nrow(forensic_anomalies) > 0) {
-  for(i in 1:nrow(forensic_anomalies)) {
-    row <- forensic_anomalies[i, ]
-    anomaly_record <- create_anomaly_record(
-      metric_name = "Forensic Profiles",
-      jurisdiction = row$jurisdiction,
-      date = row$capture_datetime,
-      value = row$forensic_profiles,
-      flag_spike_dip = row$flag_spike_dip,
-      flag_cont_spike_dip = row$flag_cont_spike_dip,
-      flag_zero_error = row$flag_zero_error,
-      flag_cont_zero_error = row$flag_cont_zero_error,
-      flag_osc_lag = row$flag_osc_lag,
-      prev_value = row$prev_value,
-      next_value = row$next_value
-    )
-    anomaly_log <- bind_rows(anomaly_log, anomaly_record)
-  }
-}
-
-### Arrestee Profiles Anomalies
-arrestee_anomalies <- arrestee_validation %>%
-  filter(flag_any) %>%
-  select(jurisdiction, capture_datetime, arrestee, prev_value, next_value,
-         any_of(c("flag_spike_dip", "flag_cont_spike_dip", "flag_zero_error", 
-                  "flag_cont_zero_error", "flag_osc_lag"))) %>%
-  ensure_flag_columns()
-
-if(nrow(arrestee_anomalies) > 0) {
-  for(i in 1:nrow(arrestee_anomalies)) {
-    row <- arrestee_anomalies[i, ]
-    anomaly_record <- create_anomaly_record(
-      metric_name = "Arrestee Profiles",
-      jurisdiction = row$jurisdiction,
-      date = row$capture_datetime,
-      value = row$arrestee,
-      flag_spike_dip = row$flag_spike_dip,
-      flag_cont_spike_dip = row$flag_cont_spike_dip,
-      flag_zero_error = row$flag_zero_error,
-      flag_cont_zero_error = row$flag_cont_zero_error,
-      flag_osc_lag = row$flag_osc_lag,
-      prev_value = row$prev_value,
-      next_value = row$next_value
-    )
-    anomaly_log <- bind_rows(anomaly_log, anomaly_record)
-  }
-}
-
-### Investigations Aided Anomalies
-investigations_anomalies <- investigations_validation %>%
-  filter(flag_any) %>%
-  select(jurisdiction, capture_datetime, investigations_aided, prev_value, next_value,
-         any_of(c("flag_spike_dip", "flag_cont_spike_dip", "flag_zero_error", 
-                  "flag_cont_zero_error", "flag_osc_lag"))) %>%
-  ensure_flag_columns()
-
-if(nrow(investigations_anomalies) > 0) {
-  for(i in 1:nrow(investigations_anomalies)) {
-    row <- investigations_anomalies[i, ]
-    anomaly_record <- create_anomaly_record(
-      metric_name = "Investigations Aided",
-      jurisdiction = row$jurisdiction,
-      date = row$capture_datetime,
-      value = row$investigations_aided,
-      flag_spike_dip = row$flag_spike_dip,
-      flag_cont_spike_dip = row$flag_cont_spike_dip,
-      flag_zero_error = row$flag_zero_error,
-      flag_cont_zero_error = row$flag_cont_zero_error,
-      flag_osc_lag = row$flag_osc_lag,
-      prev_value = row$prev_value,
-      next_value = row$next_value
-    )
-    anomaly_log <- bind_rows(anomaly_log, anomaly_record)
-  }
-}
-
-### NDIS Labs Anomalies
-labs_anomalies <- labs_validation %>%
-  filter(flag_any) %>%
-  select(jurisdiction, capture_datetime, ndis_labs, prev_value, next_value,
-         any_of(c("flag_spike_dip", "flag_cont_spike_dip", "flag_zero_error", 
-                  "flag_cont_zero_error", "flag_osc_lag"))) %>%
-  ensure_flag_columns()
-
-if(nrow(labs_anomalies) > 0) {
-  for(i in 1:nrow(labs_anomalies)) {
-    row <- labs_anomalies[i, ]
-    anomaly_record <- create_anomaly_record(
-      metric_name = "NDIS Labs",
-      jurisdiction = row$jurisdiction,
-      date = row$capture_datetime,
-      value = row$ndis_labs,
-      flag_spike_dip = row$flag_spike_dip,
-      flag_cont_spike_dip = row$flag_cont_spike_dip,
-      flag_zero_error = row$flag_zero_error,
-      flag_cont_zero_error = row$flag_cont_zero_error,
-      flag_osc_lag = row$flag_osc_lag,
-      prev_value = row$prev_value,
-      next_value = row$next_value
-    )
-    anomaly_log <- bind_rows(anomaly_log, anomaly_record)
-  }
-}
-
-### Set metric and anomaly type ordering for consistent display
-metric_order <- c("Offender Profiles", "Forensic Profiles", "Arrestee Profiles", 
+# Define metric order and colors
+metric_order <- c("Offender Profiles", "Forensic Profiles", "Arrestee Profiles",
                   "Investigations Aided", "NDIS Labs")
-anomaly_type_order <- c("spike_dip", "cont_spike_dip", "zero_error", "cont_zero_error", "osc_lag")
 
-# Convert to factors with desired order
-anomaly_log <- anomaly_log %>%
+metric_colors <- c(
+  "Offender Profiles" = "#31688e",
+  "Forensic Profiles" = "#440154",
+  "Arrestee Profiles" = "#35b779",
+  "Investigations Aided" = "#fde725",
+  "NDIS Labs" = "#21918c"
+)
+
+# ===== SUMMARY STATISTICS =====
+total_anomalies <- nrow(anomaly_log)
+
+# By flag type
+flag_type_counts <- anomaly_log %>%
+  count(flag_type) %>%
+  arrange(desc(n))
+
+# Map flag types to descriptive names
+flag_type_labels <- c(
+  "decimal_spike_dip" = "decimal place errors",
+  "spike_dip" = "spike–dip events",
+  "ndis_labs_spike" = "NDIS labs spikes",
+  "stale_exact_reappearance" = "stale cache reappearances"
+)
+
+# By metric
+metric_counts <- anomaly_log %>%
+  count(metric) %>%
+  arrange(desc(n))
+
+cat("===== ANOMALY SUMMARY STATISTICS =====\n\n")
+cat(sprintf("Total anomalies detected: %d\n\n", total_anomalies))
+
+cat("By flag type:\n")
+for (i in 1:nrow(flag_type_counts)) {
+  label <- flag_type_labels[flag_type_counts$flag_type[i]]
+  if (is.na(label)) label <- flag_type_counts$flag_type[i]
+  cat(sprintf("  - %s: %d\n", label, flag_type_counts$n[i]))
+}
+
+cat("\nBy metric:\n")
+for (i in 1:nrow(metric_counts)) {
+  cat(sprintf("  - %s: %d\n", metric_counts$metric[i], metric_counts$n[i]))
+}
+
+# By jurisdiction (top 10)
+jurisdiction_counts <- anomaly_log %>%
+  count(jurisdiction) %>%
+  arrange(desc(n)) %>%
+  head(10)
+
+cat("\nTop 10 jurisdictions by anomaly count:\n")
+for (i in 1:nrow(jurisdiction_counts)) {
+  cat(sprintf("  - %s: %d\n", jurisdiction_counts$jurisdiction[i], jurisdiction_counts$n[i]))
+}
+```
+
+```{r}
+#| label: fig-anomaly-distribution
+#| code-fold: true
+#| code-summary: "Show anomaly distribution figure code"
+#| fig-width: 14
+#| fig-height: 16
+
+library(patchwork)
+
+# Use viridis-inspired colors for flag types (matching the metric color scheme)
+flag_colors <- c(
+  "decimal_spike_dip" = "#440154",        # Deep purple (viridis)
+  "spike_dip" = "#31688e",                 # Blue (viridis)
+  "ndis_labs_spike" = "#35b779",           # Green (viridis)
+  "stale_exact_reappearance" = "#fde725"   # Yellow (viridis)
+)
+
+# Flag type display labels
+flag_labels <- c(
+  "decimal_spike_dip" = "Decimal Error",
+  "spike_dip" = "Spike/Dip",
+  "ndis_labs_spike" = "Labs Spike",
+  "stale_exact_reappearance" = "Stale Cache"
+)
+
+# Get ALL jurisdictions alphabetically (for consistent x-axis across panels)
+all_jurisdictions <- anomaly_log %>%
+  pull(jurisdiction) %>%
+  unique() %>%
+  sort()
+
+# Prepare data: count by metric, jurisdiction, and flag type
+anomaly_plot_data <- anomaly_log %>%
+  group_by(metric, jurisdiction, flag_type) %>%
+  summarise(count = n(), .groups = "drop") %>%
   mutate(
     metric = factor(metric, levels = metric_order),
-    anomaly_type = factor(anomaly_type, levels = anomaly_type_order)
+    flag_type = factor(flag_type, levels = names(flag_colors)),
+    jurisdiction = factor(jurisdiction, levels = all_jurisdictions)
   )
 
-### Create Summary Tables for Reporting
-
-# Overview of detected anomalies by metric
-anomaly_overview <- anomaly_log %>%
-  group_by(metric) %>%
-  summarise(
-    total_anomalies = n(),
-    affected_jurisdictions = n_distinct(jurisdiction),
-    .groups = "drop"
-  ) %>%
-  arrange(metric)
-
-print(knitr::kable(anomaly_overview, format = "simple", 
-                   caption = "Overview of Detected Anomalies by Metric"))
-
-# Detailed summary by metric, jurisdiction, and anomaly type
-anomaly_detailed <- anomaly_log %>%
-  group_by(metric, jurisdiction, anomaly_type) %>%
-  summarise(
-    count = n(),
-    earliest_date = min(date),
-    latest_date = max(date),
-    avg_value = mean(value, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  arrange(metric, jurisdiction, anomaly_type)
-
-print(knitr::kable(anomaly_detailed, format = "simple",
-                   caption = "Detailed Anomaly Summary by Metric, Jurisdiction, and Type"))
-
-### Publication-ready Visualization
-
-# Prepare data for plot
-anomaly_plot_data <- anomaly_log %>%
+# Calculate global y-axis max (sum of all flag types per jurisdiction per metric)
+y_max_global <- anomaly_plot_data %>%
   group_by(metric, jurisdiction) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  mutate(metric = factor(metric, levels = metric_order))
+  summarise(total = sum(count), .groups = "drop") %>%
+  pull(total) %>%
+  max(na.rm = TRUE)
 
-# Custom colors matching scheme
-metric_colors <- c(
-  "Offender Profiles"    = "#1f4e79",
-  "Arrestee Profiles"    = "#2e75b6",
-  "Forensic Profiles"    = "#5b9bd5",
-  "Investigations Aided" = "#c00000",
-  "NDIS Labs"            = "#7030a0"
-)
+# Add 10% padding
+y_max_global <- ceiling(y_max_global * 1.1)
 
-# Create stacked bar plot
-p_anomaly_distribution <- ggplot(anomaly_plot_data, 
-                                aes(x = jurisdiction, y = count, fill = metric)) +
-  geom_bar(stat = "identity", position = "stack", color = "black", 
-           linewidth = 0.3, width = 1) +
-  scale_fill_manual(name = "Metric", values = metric_colors) +
-  scale_y_continuous(limits = c(0, NA), expand = c(0, 0)) +
-  theme_ndis(base_size = 11) +
+# Common theme for panels (legend will be collected at bottom)
+theme_panel <- theme_minimal(base_size = 10) +
   theme(
     panel.grid = element_blank(),
     axis.line = element_line(color = "black", linewidth = 0.4),
     axis.ticks = element_line(color = "black", linewidth = 0.4),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.key.width = unit(0.4, "cm"),
-    legend.key.height = unit(0.4, "cm"),
-    aspect.ratio = 0.65
-  ) +
-  labs(
-    title = " ",
-    x = "Jurisdiction",
-    y = "Number of Anomalies"
-  )
-
-p_anomaly_distribution
-
-# Anomaly type distribution
-anomaly_type_summary <- anomaly_log %>%
-  group_by(anomaly_type) %>%
-  summarise(
-    count = n(),
-    metrics_affected = n_distinct(metric),
-    .groups = "drop"
-  ) %>%
-  arrange(anomaly_type)
-
-print(knitr::kable(anomaly_type_summary, format = "simple",
-                   caption = "Anomaly Count by Detection Rule"))
-
-# Export anomaly log for archival and transparency
-anomaly_export_path <- here("data", "ndis", "intermediate", "anomaly_log.csv")
-write.csv(anomaly_log, anomaly_export_path, row.names = FALSE)
-```
-
-#### Compiled Data Growth
-
-**Validation Approach:**
-
-· Cross-validation across all metrics
-
-· Yearly aggregation using maximum values
-
-· Consistency checks between profile types
-
-· Scale-appropriate visualization
-
-**Correction Methods:**
-
-· Unified compilation from cleaned sources
-
-· Dual-axis visualization for different scales
-
-· Analysis-ready dataset creation
-
-· Comprehensive trend analysis
-
-```{r}
-#| label: compiled-plots-correction
-#| echo: true
-#| code-fold: true
-#| code-summary: "Show compiled data visualization and correction code"
-
-# Get yearly data
-growth_data_yearly <- ndis_clean %>%
-  mutate(
-    offender_profiles = ifelse(is.na(offender_profiles), 0, offender_profiles),
-    arrestee = ifelse(is.na(arrestee), 0, arrestee),
-    forensic_profiles = ifelse(is.na(forensic_profiles), 0, forensic_profiles),
-    investigations_aided = ifelse(is.na(investigations_aided), 0, investigations_aided)
-  ) %>%
-  # Get max per jurisdiction per year
-  group_by(year, jurisdiction) %>%
-  summarise(
-    offender = max(offender_profiles, na.rm = TRUE),
-    arrestee = max(arrestee, na.rm = TRUE),
-    forensic = max(forensic_profiles, na.rm = TRUE),
-    investigations = max(investigations_aided, na.rm = TRUE),
-    ndis_labs = max(ndis_labs, na.rm = TRUE),
-    .groups = 'drop'
-  ) %>%
-  # Sum across jurisdictions per year
-  group_by(year) %>%
-  summarise(
-    jurisdictions = n(),
-    offender_total = sum(offender, na.rm = TRUE),
-    arrestee_total = sum(arrestee, na.rm = TRUE),
-    forensic_total = sum(forensic, na.rm = TRUE),
-    investigations_total = sum(investigations, na.rm = TRUE),
-    ndis_labs_total = sum(ndis_labs, na.rm = TRUE),
-    total_profiles = offender_total + arrestee_total + forensic_total,
-    .groups = 'drop'
-  ) %>%
-  arrange(year) %>%
-  mutate(date = as.Date(paste0(year, "-01-01")))
-
-# Calculate scale factor for dual y-axes
-max_dna <- max(c(growth_data_yearly$offender_total, 
-                 growth_data_yearly$arrestee_total, 
-                 growth_data_yearly$forensic_total), na.rm = TRUE)
-max_investigations <- max(growth_data_yearly$investigations_total, na.rm = TRUE)
-scale_factor <- max_dna / max_investigations
-
-# Prepare data for plotting
-dna_data <- growth_data_yearly %>%
-  select(date, offender_total, arrestee_total, forensic_total) %>%
-  pivot_longer(
-    cols = c(offender_total, arrestee_total, forensic_total),
-    names_to = "variable",
-    values_to = "count"
-  ) %>%
-  mutate(
-    variable = case_when(
-      variable == "offender_total" ~ "Offender",
-      variable == "arrestee_total" ~ "Arrestee", 
-      variable == "forensic_total" ~ "Forensic"
-    ),
-    count_scaled = count 
-  )
-
-investigations_data <- growth_data_yearly %>%
-  select(date, investigations_total) %>%
-  mutate(
-    variable = "Investigations",
-    count_scaled = investigations_total * scale_factor
-  )
-
-#### Interactive Plot ####
-
-p_interactive <- plot_ly() %>%
-  # DNA Profiles
-  add_trace(
-    data = dna_data %>% filter(variable == "Offender"),
-    x = ~date, y = ~count,
-    type = 'scatter', mode = 'lines+markers',
-    name = 'Offender Profiles',
-    line = list(color = '#0072B2', width = 2),
-    marker = list(color = '#0072B2', size = 6),
-    yaxis = 'y1'
-  ) %>%
-  add_trace(
-    data = dna_data %>% filter(variable == "Arrestee"),
-    x = ~date, y = ~count,
-    type = 'scatter', mode = 'lines+markers',
-    name = 'Arrestee Profiles',
-    line = list(color = '#D55E00', width = 2),
-    marker = list(color = '#D55E00', size = 6),
-    yaxis = 'y1'
-  ) %>%
-  add_trace(
-    data = dna_data %>% filter(variable == "Forensic"),
-    x = ~date, y = ~count,
-    type = 'scatter', mode = 'lines+markers',
-    name = 'Forensic Profiles',
-    line = list(color = '#009E73', width = 2),
-    marker = list(color = '#009E73', size = 6),
-    yaxis = 'y1'
-  ) %>%
-  # Investigations Aided
-  add_trace(
-    data = investigations_data,
-    x = ~date, y = ~investigations_total,
-    type = 'scatter', mode = 'lines+markers',
-    name = 'Investigations Aided',
-    line = list(color = '#CC79A7', width = 2),
-    marker = list(color = '#CC79A7', size = 6),
-    yaxis = 'y2'
-  ) %>%
-  layout(
-    title = "DNA Profiles and Investigations Aided Over Time (Yearly)",
-    xaxis = list(
-      title = "Year",
-      tickformat = "%Y"
-    ),
-    yaxis = list(
-      title = "DNA Profiles",
-      side = 'left',
-      showgrid = TRUE,
-      zeroline = TRUE,
-      automargin = TRUE
-    ),
-    yaxis2 = list(
-      title = "Investigations Aided",
-      side = 'right',
-      overlaying = 'y',
-      anchor = 'x',
-      position = 1,
-      showgrid = FALSE,
-      zeroline = FALSE,
-      automargin = TRUE,
-      titlefont = list(size = 12),
-      tickfont = list(size = 10)
-    ),
-    legend = list(
-      x = 0.01,
-      y = 0.99,
-      bgcolor = 'rgba(255,255,255,0.9)',
-      bordercolor = 'black',
-      borderwidth = 1
-    ),
-    hovermode = 'x unified'
-  )
-
-p_interactive
-
-#### Publication-Ready Static Plot ####
-
-# Get the actual date range for proper x-axis limits
-date_range <- range(growth_data_yearly$date)
-extended_date_range <- c(min(date_range) - years(1), max(date_range))
-legend_start_date <- extended_date_range[1]
-
-y_upper_limit <- max_dna * 1.05
-y_lower_limit <- 0
-
-p_static <- ggplot() +
-  geom_line(data = dna_data, 
-            aes(x = date, y = count_scaled, color = variable), 
-            linewidth = 1.2) +
-  geom_point(data = dna_data, 
-             aes(x = date, y = count_scaled, color = variable), 
-             size = 2) +
-  geom_line(data = investigations_data, 
-            aes(x = date, y = count_scaled, color = variable), 
-            linewidth = 1.2) +
-  geom_point(data = investigations_data, 
-             aes(x = date, y = count_scaled, color = variable), 
-             size = 2) +
-  scale_x_date(
-    date_breaks = "1 years",
-    date_labels = "%Y",
-    limits = extended_date_range, 
-    expand = expansion(mult = 0.02)
-  ) +
-  scale_y_continuous(
-    name = "DNA Profiles",
-    labels = function(x) {
-      ifelse(x >= 1e6, paste0(x/1e6, "M"), 
-             ifelse(x >= 1e3, paste0(x/1e3, "K"), x))
-    },
-    breaks = seq(0, max_dna, by = 2e6),
-    limits = c(y_lower_limit, y_upper_limit),
-    sec.axis = sec_axis(~./scale_factor, 
-                        name = "Investigations Aided",
-                        labels = function(x) {
-                          ifelse(x >= 1e6, paste0(x/1e6, "M"), 
-                                 ifelse(x >= 1e3, paste0(x/1e3, "K"), x))
-                        },
-                        breaks = seq(0, max_investigations, by = 100000))
-  ) +
-  scale_color_manual(
-    name = NULL,
-    values = c("Offender" = "#1f4e79", 
-               "Arrestee" = "#2e75b6", 
-               "Forensic" = "#5b9bd5",
-               "Investigations" = "#c00000") 
-  ) +
-  theme_ndis(base_size = 12) +
-  theme(
-    panel.grid = element_blank(),
-    axis.line = element_line(color = "black", linewidth = 0.5),
-    axis.ticks = element_line(color = "black", linewidth = 0.5),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    axis.title.x = element_text(color = "black", margin = margin(t = 10)),
-    axis.title.y.left = element_text(color = "#1f4e79", margin = margin(r = 10)),
-    axis.title.y.right = element_text(color = "#c00000", margin = margin(l = 10)),
-    legend.position = "none",
-    plot.margin = margin(5, 10, 5, 10),
-    aspect.ratio = 0.6
-  ) +
-  labs(
-    x = "Year",
-    title = " "
-  ) +
-  # DNA Profiles legend box
-  annotate("rect", xmin = legend_start_date, 
-           xmax = legend_start_date + years(6), 
-           ymin = max_dna * 0.86, ymax = max_dna, 
-           fill = "white", color = "black", alpha = 0.9, linewidth = 0.3) +
-  # Investigations legend box
-  annotate("rect", xmin = legend_start_date, 
-           xmax = legend_start_date + years(7), 
-           ymin = max_dna * 0.74, ymax = max_dna * 0.80, 
-           fill = "white", color = "black", alpha = 0.9, linewidth = 0.3) +
-  # DNA Profiles legend items
-  annotate("point", 
-           x = legend_start_date + years(0) + months(6), 
-           y = c(max_dna * 0.97, max_dna * 0.93, max_dna * 0.89),
-           color = c("#1f4e79", "#2e75b6", "#5b9bd5"), size = 1.5) +
-  annotate("text", 
-           x = legend_start_date + years(1), 
-           y = c(max_dna * 0.97, max_dna * 0.93, max_dna * 0.89),
-           label = c("Offender Profiles", "Arrestee Profiles", "Forensic Profiles"),
-           hjust = 0, size = 6) +
-  annotate("text", 
-           x = legend_start_date + years(0), 
-           y = max_dna * 1.01, 
-           label = "DNA Profiles (Millions)", 
-           fontface = "bold", hjust = 0, size = 6, vjust = 0) +
-  # Investigations Aided legend
-  annotate("point", 
-           x = legend_start_date + years(0) + months(6), 
-           y = max_dna * 0.77, 
-           color = "#c00000", size = 1.5) +
-  annotate("text", 
-           x = legend_start_date + years(1), 
-           y = max_dna * 0.77, 
-           label = "Investigations Aided",
-           hjust = 0, size = 6) +
-  annotate("text", 
-           x = legend_start_date + years(0), 
-           y = max_dna * 0.81, 
-           label = "Investigations (Thousands)", 
-           fontface = "bold", hjust = 0, size = 6 , vjust = 0)
-
-p_static
-```
-
-### Temporal Coverage
-
-The heat map visualizes the temporal coverage of NDIS data submissions across different jurisdictions over the years for the intermediate csv file (with outliers and reporting errors) and for the cleaned dataset. It highlights periods of active reporting and gaps in data submission.
-
-```{r}
-#| label: heatmap-coverage
-#| echo: true
-#| code-fold: true
-#| code-summary: "Show heatmap code"
-
-# Prepare data for heatmap - CLEANED DATASET
-temporal_coverage_clean <- ndis_clean %>%
-  mutate(year = year(capture_datetime)) %>%
-  count(jurisdiction, year) %>%
-  complete(jurisdiction, year = 2001:2025, fill = list(n = 0)) %>%
-  filter(!is.na(jurisdiction)) %>%
-  mutate(jurisdiction = factor(jurisdiction, levels = rev(sort(unique(jurisdiction)))))
-
-# Create the heatmap for cleaned data
-heatmap_after_clean <- ggplot(temporal_coverage_clean, aes(x = year, y = jurisdiction, fill = n)) +
-  geom_tile(color = "white", linewidth = 0.3) +
-  scale_fill_viridis(
-    name = "Snapshots\nper Year",
-    option = "plasma",
-    direction = -1,
-    breaks = c(0, 3, 6, 10),
-    labels = c("0", "3", "6", "10+")
-  ) +
-  scale_x_continuous(
-    breaks = seq(2001, 2025, by = 1),
-    expand = expansion(mult = 0.01)
-  ) +
-  labs(
-    x = "Year",
-    y = "Jurisdiction",
-    title = " "
-  ) +
-  theme_ndis(base_size = 11) +
-  theme(
-    panel.grid = element_blank(),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "right",
-    legend.key.height = unit(0.6, "cm"), 
-    legend.key.width = unit(0.2, "cm")
-  )
-
-heatmap_after_clean
-
-```
-
-### Comparison with peer-reviewed papers
-
-As an additional check, we compared corrected national aggregates against published NDIS totals from FBI press releases and peer-reviewed articles. As shown in Figure 6, the reconstructed dataset aligns closely with these independent milestones, supporting the technical quality of the NDIS time series.
-
-```{r}
-#| label: peer-review-comparison
-#| echo: true
-#| warning: false
-#| message: false
-#| code-fold: true
-#| code-summary: "Show peer-reviewed literature comparison"
-
-# Preparation of growth_data_yearly 
-growth_data_yearly <- ndis_clean %>%
-  mutate(year = year(capture_datetime)) %>%
-  group_by(jurisdiction, year) %>%
-  arrange(jurisdiction, capture_datetime) %>%
-  mutate(
-    selection_priority = case_when(
-      year <= 2018 ~ arrestee,
-      year > 2018 ~ offender_profiles
-    )
-  ) %>%
-  slice_max(order_by = selection_priority, n = 1, with_ties = FALSE) %>%
-  ungroup() %>%
-  group_by(year) %>%
-  summarise(
-    offender_total = sum(offender_profiles, na.rm = TRUE),
-    arrestee_total = sum(arrestee, na.rm = TRUE),
-    forensic_total = sum(forensic_profiles, na.rm = TRUE),
-    investigations_total = sum(investigations_aided, na.rm = TRUE),
-    n_jurisdictions = n(),
-    .groups = 'drop'
-  ) %>%
-  mutate(
-    total_profiles = offender_total + arrestee_total + forensic_total,
-    date = as.Date(paste0(year, "-06-01"))
-  )
-
-# Prepare data for plotting DNA profiles
-dna_data <- growth_data_yearly %>%
-  select(date, offender_total, arrestee_total, forensic_total, total_profiles) %>%
-  pivot_longer(
-    cols = c(offender_total, arrestee_total, forensic_total, total_profiles),
-    names_to = "variable",
-    values_to = "count"
-  ) %>%
-  mutate(
-    variable = case_when(
-      variable == "offender_total" ~ "Offender",
-      variable == "arrestee_total" ~ "Arrestee", 
-      variable == "forensic_total" ~ "Forensic",
-      variable == "total_profiles" ~ "Total"
-    )
-  )
-
-# Prepare data for plotting investigations
-investigations_data <- growth_data_yearly %>%
-  select(date, investigations_total)
-
-# Create literature dataset
-literature_data <- tribble(
-  ~citation, ~asof_date, ~offender_profiles, ~arrestee_profiles, ~forensic_profiles, ~total_profiles, ~investigations_aided, ~short_label,
-  "FBI Brochure", "2000-12-01", 441181, NA, 21625, NA, 1573, "FBI (Dec 2000)",
-  "FBI Brochure", "2002-12-01", 1247163, NA, 46177, NA, 6670, "FBI (Dec 2002)",
-  "FBI Brochure", "2004-12-01", 2038514, NA, 93956, NA, 21266, "FBI (Dec 2004)",
-  "FBI Brochure", "2006-12-01", 3977435, 54313, 160582, NA, 45364, "FBI (Dec 2006)",
-  "FBI Brochure", "2008-12-01", 6399200, 140719, 248943, NA, 81955, "FBI (Dec 2008)",
-  "FBI Brochure", "2010-12-01", 8564705, 668849, 351951, NA, 130317, "FBI (Dec 2010)",
-  "FBI Brochure", "2012-12-01", 10086404, 1332721, 446689, NA, 190560, "FBI (Dec 2012)",
-  "FBI Brochure", "2015-06-01", 11822927, 2028734, 638162, NA, 274648, "FBI (Jun 2015)",
-  "Ge et al., 2012", "2011-06-01", NA, NA, NA, 10000000, 141300, "Ge et al., 2012",
-  "Ge et al., 2014", "2013-05-01", NA, NA, NA, 12000000, 185000, "Ge et al., 2014",
-  "Wickenheiser, 2022", "2021-10-01", 14836490, 4513955, 1144255, NA, 587773, "Wickenheiser, 2022",
-  "Link et al., 2023", "2022-11-01", NA, NA, NA, 21791620, 622955, "Link et al., 2023",
-  "Greenwald & Phiri, 2024", "2024-02-01", 17000000, 5000000, 1300000, NA, 680000, "Greenwald & Phiri, 2024"
-) %>%
-  mutate(
-    asof_date = as.Date(asof_date),
-    total_profiles = ifelse(
-      is.na(total_profiles),
-      rowSums(select(., offender_profiles, arrestee_profiles, forensic_profiles), na.rm = TRUE),
-      total_profiles
-    )
-  )
-
-# Prepare literature data for DNA profiles
-literature_dna <- literature_data %>%
-  select(short_label, asof_date, offender_profiles, arrestee_profiles, forensic_profiles, total_profiles) %>%
-  pivot_longer(
-    cols = c(offender_profiles, arrestee_profiles, forensic_profiles, total_profiles),
-    names_to = "variable",
-    values_to = "count"
-  ) %>%
-  filter(!is.na(count)) %>%
-  mutate(
-    variable = case_when(
-      variable == "offender_profiles" ~ "Offender",
-      variable == "arrestee_profiles" ~ "Arrestee",
-      variable == "forensic_profiles" ~ "Forensic",
-      variable == "total_profiles" ~ "Total"
-    )
-  )
-
-# Prepare literature data for investigations
-literature_investigations <- literature_data %>%
-  select(short_label, asof_date, investigations_aided) %>%
-  filter(!is.na(investigations_aided))
-
-# Get date range
-date_range <- range(growth_data_yearly$date)
-extended_date_range <- c(min(date_range) - years(1), max(date_range))
-legend_start_date <- extended_date_range[1]
-
-# Calculate y-axis limits for DNA profiles
-max_dna <- max(dna_data$count, na.rm = TRUE)
-y_upper_dna <- max_dna * 1.05
-
-# Calculate y-axis limits for investigations
-max_inv <- max(investigations_data$investigations_total, na.rm = TRUE)
-y_upper_inv <- max_inv * 1.05
-
-# Define colors for each plot type
-offender_color <- "#31688e"
-arrestee_color <- "#35b779"
-forensic_color <- "#440154"
-total_color <- "#22a884"
-investigations_color <- "#fde724"
-
-# Create individual plots for each DNA profile type
-p_offender <- ggplot() +
-  geom_line(data = dna_data %>% filter(variable == "Offender"), 
-            aes(x = date, y = count), 
-            color = offender_color, linewidth = 0.5) +
-  geom_point(data = dna_data %>% filter(variable == "Offender"), 
-             aes(x = date, y = count), 
-             color = offender_color, size = 1.0) +
-  geom_point(data = literature_dna %>% filter(variable == "Offender"),
-             aes(x = asof_date, y = count),
-             shape = 4, size = 2.8, stroke = 1.0, color = offender_color) +
-  geom_label_repel(
-    data = literature_dna %>% filter(variable == "Offender" & lubridate::year(asof_date) < 2020),
-    aes(x = asof_date, y = count, label = short_label),
-    size = 3.5,
-    nudge_y = 5000000,
-    box.padding = 0.35, point.padding = 0.5,
-    min.segment.length = 0.5, segment.color = "gray50",
-    direction = "both", force = 5, force_pull = 1,
-    max.overlaps = Inf,
-    fill = "white", label.size = 0.2, label.padding = unit(0.15, "lines")
-  ) +
-  geom_label_repel(
-    data = literature_dna %>% filter(variable == "Offender" & lubridate::year(asof_date) >= 2021),
-    aes(x = asof_date, y = count, label = short_label),
-    size = 3.5,
-    nudge_y = 1000000,
-    box.padding = 0.35, point.padding = 0.5,
-    min.segment.length = 0.5, segment.color = "gray50",
-    direction = "both", force = 5, force_pull = 1,
-    max.overlaps = Inf,
-    fill = "white", label.size = 0.2, label.padding = unit(0.15, "lines")
-  ) +
-  scale_x_date(name = "Year", date_breaks = "1 years", date_labels = "%Y",
-               limits = extended_date_range, expand = expansion(mult = 0.02)) +
-  scale_y_continuous(name = "Offender Profiles",
-                     labels = function(x) ifelse(x >= 1e6, paste0(x/1e6, "M"), 
-                                                  ifelse(x >= 1e3, paste0(x/1e3, "K"), x)),
-                     limits = c(0, max(literature_dna %>% filter(variable == "Offender") %>% pull(count), na.rm = TRUE) * 1.1),
-                     expand = expansion(mult = c(0, 0.05))) +
-  theme_ndis(base_size = 11) +
-  theme(
-    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.3),
-    panel.grid.minor = element_blank(), 
-    panel.grid.major.x = element_blank(),
-    axis.line = element_line(color = "black", linewidth = 0.3),
-    axis.ticks = element_line(color = "black", linewidth = 0.3),
-    axis.text.x = element_text(angle = 45, hjust = 1, margin = margin(t = -5)),
-    axis.text.y = element_text(margin = margin(r = -10)),
+    axis.text = element_text(color = "black", size = 8),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
     axis.title.x = element_blank(),
-    axis.title.y = element_text(margin = margin(r = 2)),
-    plot.title = element_blank(),
-    plot.title.position = "plot"
-  ) +
-  labs(x = "Year", y = NULL, title = "Offender Profiles")
+    axis.title.y = element_text(size = 10, face = "bold", margin = margin(r = 5)),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold", size = 12),
+    legend.text = element_text(size = 11),
+    legend.key.size = unit(0.6, "cm"),
+    plot.title = element_text(face = "bold", size = 11),
+    plot.margin = margin(t = 5, r = 5, b = 2, l = 5)
+  )
 
-p_offender
+# Create individual panels for each metric with consistent y-axis
+create_metric_panel <- function(metric_name, panel_label, y_max) {
+  plot_data <- anomaly_plot_data %>%
+    filter(metric == metric_name)
+  
+  ggplot(plot_data, aes(x = jurisdiction, y = count, fill = flag_type)) +
+    geom_bar(stat = "identity", position = "stack", color = "black",
+             linewidth = 0.2, width = 0.8) +
+    scale_fill_manual(name = "Anomaly Type", values = flag_colors, labels = flag_labels,
+                      drop = FALSE) +
+    scale_x_discrete(limits = all_jurisdictions, drop = FALSE) +
+    scale_y_continuous(limits = c(0, y_max), expand = expansion(mult = c(0, 0))) +
+    labs(title = paste0(panel_label, " ", metric_name), y = "Count") +
+    theme_panel +
+    guides(fill = guide_legend(nrow = 1))
+}
 
-p_arrestee <- ggplot() +
-  geom_line(data = dna_data %>% filter(variable == "Arrestee"), 
-            aes(x = date, y = count), 
-            color = arrestee_color, linewidth = 0.5) +
-  geom_point(data = dna_data %>% filter(variable == "Arrestee"), 
-             aes(x = date, y = count), 
-             color = arrestee_color, size = 1.0) +
-  geom_point(data = literature_dna %>% filter(variable == "Arrestee"),
-             aes(x = asof_date, y = count),
-             shape = 4, size = 2.8, stroke = 1.0, color = arrestee_color) +
-  geom_label_repel(
-    data = literature_dna %>% filter(variable == "Arrestee"),
-    aes(x = asof_date, y = count, label = short_label),
-    size = 3.5,
-    nudge_y = 500000,
-    box.padding = 0.35, point.padding = 0.5,
-    min.segment.length = 0.5, segment.color = "gray50",
-    direction = "both", force = 5, force_pull = 1,
-    max.overlaps = Inf,
-    fill = "white", label.size = 0.2, label.padding = unit(0.15, "lines")
-  ) +
-  scale_x_date(name = "Year", date_breaks = "1 years", date_labels = "%Y",
-               limits = extended_date_range, expand = expansion(mult = 0.02)) +
-  scale_y_continuous(name = "Arrestee Profiles",
-                     labels = function(x) ifelse(x >= 1e6, paste0(x/1e6, "M"), 
-                                                  ifelse(x >= 1e3, paste0(x/1e3, "K"), x)),
-                     limits = c(0, max(literature_dna %>% filter(variable == "Arrestee") %>% pull(count), na.rm = TRUE) * 1.1),
-                     expand = expansion(mult = c(0, 0.05))) +
-  theme_ndis(base_size = 11) +
-  theme(
-    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.3),
-    panel.grid.minor = element_blank(), 
-    panel.grid.major.x = element_blank(),
-    axis.line = element_line(color = "black", linewidth = 0.3),
-    axis.ticks = element_line(color = "black", linewidth = 0.3),
-    axis.text.x = element_text(angle = 45, hjust = 1, margin = margin(t = -5)),
-    axis.text.y = element_text(margin = margin(r = -10)),
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(margin = margin(r = 2)),
-    plot.title = element_blank(),
-    plot.title.position = "plot") +
-  labs(x = "Year", y = NULL, title = "Arrestee Profiles")
+# Create panels with consistent y-axis
+p_offender <- create_metric_panel("Offender Profiles", "(A)", y_max_global)
+p_forensic <- create_metric_panel("Forensic Profiles", "(B)", y_max_global)
+p_arrestee <- create_metric_panel("Arrestee Profiles", "(C)", y_max_global)
+p_investigations <- create_metric_panel("Investigations Aided", "(D)", y_max_global)
 
-p_arrestee
+# Combine panels vertically with shared legend at bottom using patchwork
+final_plot <- (p_offender / p_forensic / p_arrestee / p_investigations) +
+  plot_layout(heights = c(1, 1, 1, 1), guides = "collect") +
+  plot_annotation(
+    title = "Anomaly Distribution by Metric and Jurisdiction",
+    theme = theme(
+      plot.title = element_text(face = "bold", size = 14, hjust = 0.5)
+    )
+  ) &
+  theme(legend.position = "bottom")
 
-p_forensic <- ggplot() +
-  geom_line(data = dna_data %>% filter(variable == "Forensic"), 
-            aes(x = date, y = count), 
-            color = forensic_color, linewidth = 0.5) +
-  geom_point(data = dna_data %>% filter(variable == "Forensic"), 
-             aes(x = date, y = count), 
-             color = forensic_color, size = 1.0) +
-  geom_point(data = literature_dna %>% filter(variable == "Forensic"),
-             aes(x = asof_date, y = count),
-             shape = 4, size = 2.8, stroke = 1.0, color = forensic_color) +
-  geom_label_repel(
-    data = literature_dna %>% filter(variable == "Forensic" & lubridate::year(asof_date) < 2020),
-    aes(x = asof_date, y = count, label = short_label),
-    size = 3.5,
-    nudge_y = 500000,
-    box.padding = 0.35, point.padding = 0.5,
-    min.segment.length = 0.5, segment.color = "gray50",
-    direction = "both", force = 5, force_pull = 1,
-    max.overlaps = Inf,
-    fill = "white", label.size = 0.2, label.padding = unit(0.15, "lines")
-  ) +
-  geom_label_repel(
-    data = literature_dna %>% filter(variable == "Forensic" & lubridate::year(asof_date) >= 2021),
-    aes(x = asof_date, y = count, label = short_label),
-    size = 3.5,
-    nudge_y = 100000,
-    box.padding = 0.35, point.padding = 0.5,
-    min.segment.length = 0.5, segment.color = "gray50",
-    direction = "both", force = 5, force_pull = 1,
-    max.overlaps = Inf,
-    fill = "white", label.size = 0.2, label.padding = unit(0.15, "lines")
-  ) +
-  scale_x_date(name = "Year", date_breaks = "1 years", date_labels = "%Y",
-               limits = extended_date_range, expand = expansion(mult = 0.02)) +
-  scale_y_continuous(name = "Forensic Profiles",
-                     labels = function(x) ifelse(x >= 1e6, paste0(x/1e6, "M"), 
-                                                  ifelse(x >= 1e3, paste0(x/1e3, "K"), x)),
-                     limits = c(0, max(literature_dna %>% filter(variable == "Forensic") %>% pull(count), na.rm = TRUE) * 1.1),
-                     expand = expansion(mult = c(0, 0.05))) +
-  theme_ndis(base_size = 11) +
-  theme(
-    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.3),
-    panel.grid.minor = element_blank(), 
-    panel.grid.major.x = element_blank(),
-    axis.line = element_line(color = "black", linewidth = 0.3),
-    axis.ticks = element_line(color = "black", linewidth = 0.3),
-    axis.text.x = element_text(angle = 45, hjust = 1, margin = margin(t = -5)),
-    axis.text.y = element_text(margin = margin(r = -10)),
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(margin = margin(r = 2)),
-    plot.title = element_blank(),
-    plot.title.position = "plot") +
-  labs(x = "Year", y = NULL, title = "Forensic Profiles")
+final_plot
 
-p_forensic
+# Save figure
+fig_output_dir <- here("output", "figures", "manuscript_figures")
+dir.create(fig_output_dir, recursive = TRUE, showWarnings = FALSE)
 
-p_total <- ggplot() +
-  geom_line(data = dna_data %>% filter(variable == "Total"), 
-            aes(x = date, y = count), 
-            color = total_color, linewidth = 0.5) +
-  geom_point(data = dna_data %>% filter(variable == "Total"), 
-             aes(x = date, y = count), 
-             color = total_color, size = 1.0) +
-  geom_point(data = literature_dna %>% filter(variable == "Total"),
-             aes(x = asof_date, y = count),
-             shape = 4, size = 2.8, stroke = 1.0, color = total_color) +
-  geom_label_repel(
-    data = literature_dna %>% filter(variable == "Total" & lubridate::year(asof_date) >= 2020),
-    aes(x = asof_date, y = count, label = short_label),
-    size = 3.5,
-    nudge_y = -1000000,
-    box.padding = 0.35, point.padding = 0.5,
-    min.segment.length = 0.5, segment.color = "gray50",
-    direction = "y", force = 5, force_pull = 1,
-    max.overlaps = Inf,
-    fill = "white", label.size = 0.2, label.padding = unit(0.15, "lines")
-  ) +
-  geom_label_repel(
-    data = literature_dna %>% filter(variable == "Total" & lubridate::year(asof_date) < 2021),
-    aes(x = asof_date, y = count, label = short_label),
-    size = 3.5,
-    nudge_y = 6000000,
-    box.padding = 0.35, point.padding = 0.5,
-    min.segment.length = 0.5, segment.color = "gray50",
-    direction = "both", force = 5, force_pull = 1,
-    max.overlaps = Inf,
-    fill = "white", label.size = 0.2, label.padding = unit(0.15, "lines")
-  ) +
-  scale_x_date(name = "Year", date_breaks = "1 years", date_labels = "%Y",
-               limits = extended_date_range, expand = expansion(mult = 0.02)) +
-  scale_y_continuous(name = "Total Profiles",
-                     labels = function(x) ifelse(x >= 1e6, paste0(x/1e6, "M"), 
-                                                  ifelse(x >= 1e3, paste0(x/1e3, "K"), x)),
-                     limits = c(0, max(literature_dna %>% filter(variable == "Total") %>% pull(count), na.rm = TRUE) * 1.1),
-                     expand = expansion(mult = c(0, 0.05))) +
-  theme_ndis(base_size = 11) +
-  theme(
-    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.3),
-    panel.grid.minor = element_blank(), 
-    panel.grid.major.x = element_blank(),
-    axis.line = element_line(color = "black", linewidth = 0.3),
-    axis.ticks = element_line(color = "black", linewidth = 0.3),
-    axis.text.x = element_text(angle = 45, hjust = 1, margin = margin(t = -5)),
-    axis.text.y = element_text(margin = margin(r = -10)),
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(margin = margin(r = 2)),
-    plot.title = element_blank(),
-    plot.title.position = "plot" ) +
-  labs(x = "Year", y = NULL, title = "Total Profiles")
-
-p_total
-
-p_investigations_grid <- ggplot() +
-  geom_line(data = investigations_data, 
-            aes(x = date, y = investigations_total), 
-            color = investigations_color, linewidth = 0.5) +
-  geom_point(data = investigations_data, 
-             aes(x = date, y = investigations_total), 
-             color = investigations_color, size = 1.0) +
-  geom_point(data = literature_investigations,
-             aes(x = asof_date, y = investigations_aided),
-             shape = 4, size = 2.8, stroke = 1.0, color = investigations_color) +
-  geom_label_repel(
-    data = literature_investigations %>% filter(lubridate::year(asof_date) < 2021),
-    aes(x = asof_date, y = investigations_aided, label = short_label),
-    size = 3.5,
-    nudge_y = 100000,
-    box.padding = 0.35, point.padding = 0.5,
-    min.segment.length = 0.5, segment.color = "gray50",
-    direction = "both", force = 5, force_pull = 1,
-    max.overlaps = Inf,
-    fill = "white", label.size = 0.2, label.padding = unit(0.15, "lines")
-  ) +
-  geom_label_repel(
-    data = literature_investigations %>% filter(lubridate::year(asof_date) > 2021),
-    aes(x = asof_date, y = investigations_aided, label = short_label),
-    size = 3.5,
-    nudge_x = -600,
-    nudge_y = 15000,
-    box.padding = 0.35, point.padding = 0.5,
-    min.segment.length = 0.5, segment.color = "gray50",
-    direction = "x",
-    force = 5, force_pull = 1,
-    max.overlaps = Inf,
-    fill = "white", label.size = 0.2, label.padding = unit(0.15, "lines")
-  ) +
-  geom_label_repel(
-    data = literature_investigations %>% filter(lubridate::year(asof_date) == 2021),
-    aes(x = asof_date, y = investigations_aided, label = short_label),
-    size = 3.5,
-    nudge_y = 10000,
-    nudge_x = 1000,
-    box.padding = 0.35, point.padding = 0.5,
-    min.segment.length = 0.5, segment.color = "gray50",
-    direction = "both",
-    force = 5, force_pull = 1,
-    max.overlaps = Inf,
-    fill = "white", label.size = 0.2, label.padding = unit(0.15, "lines")
-  ) +
-  scale_x_date(name = "Year", date_breaks = "1 years", date_labels = "%Y",
-               limits = extended_date_range, expand = expansion(mult = 0.02)) +
-  scale_y_continuous(name = "Investigations Aided",
-                     labels = function(x) ifelse(x >= 1e6, paste0(x/1e6, "M"), 
-                                                  ifelse(x >= 1e3, paste0(x/1e3, "K"), x)),
-                     limits = c(0, max(literature_investigations %>% pull(investigations_aided), na.rm = TRUE) * 1.1),
-                     expand = expansion(mult = c(0, 0.05))) +
-  theme_ndis(base_size = 11) +
-  theme(
-    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.3),
-    panel.grid.minor = element_blank(), 
-    panel.grid.major.x = element_blank(),
-    axis.line = element_line(color = "black", linewidth = 0.3),
-    axis.ticks = element_line(color = "black", linewidth = 0.3),
-    axis.text.x = element_text(angle = 45, margin = margin(t = -5)),
-    axis.text.y = element_text(margin = margin(r = -10)),
-    axis.title.x = element_text(margin = margin(t = 2)),
-    axis.title.y = element_text(margin = margin(r = 2)),
-    plot.title = element_blank(),
-    plot.title.position = "plot") +
-  labs(x = "Year", y = NULL, title = "Investigations Aided")
-
-p_investigations_grid
-
-plots_grid <- (p_offender + p_arrestee) / 
-              (p_forensic + p_total) / 
-              (p_investigations_grid)
-
-plots_grid <- plots_grid + 
-  plot_layout(heights = c(1, 1, 1)) &
-  theme(plot.title = element_text(face = "bold"),
-        axis.title = element_text(face = "bold"))
-```
-
-## Summary Statistics {#summarystats}
-
-Basic descriptive statistics to understand the scope and characteristics of the NDIS data.
-
-```{r}
-#| label: stats-overview
-#| echo: true
-#| code-fold: true
-#| code-summary: "Show summary statistics code"
-
-# Summary statistics table
-ndis_summary <- ndis_clean %>%
-  mutate(
-    year = year(capture_datetime),
-    offender_profiles = ifelse(is.na(offender_profiles), 0, offender_profiles),
-    arrestee = ifelse(is.na(arrestee), 0, arrestee),
-    forensic_profiles = ifelse(is.na(forensic_profiles), 0, forensic_profiles)
-  ) %>%
-  group_by(year, jurisdiction) %>%
-  summarise(
-    offender = max(offender_profiles, na.rm = TRUE),
-    arrestee = max(arrestee, na.rm = TRUE),
-    forensic = max(forensic_profiles, na.rm = TRUE),
-    .groups = 'drop'
-  ) %>%
-  group_by(year) %>%
-  summarise(
-    jurisdictions = n(),
-    offender = sum(offender, na.rm = TRUE),
-    arrestee = sum(arrestee, na.rm = TRUE),
-    forensic = sum(forensic, na.rm = TRUE),
-    total_profiles = sum(offender + arrestee + forensic, na.rm = TRUE),
-    .groups = 'drop'
-  ) %>%
-  arrange(year)
-
-# Print summary table
-kable(ndis_summary, caption = "Annual Summary Statistics") %>%
-  kable_styling(bootstrap_options = c("striped", "hover"))
-
-```
-
-## Data Visualization {#visualiz}
-
-### Geospatial Mapping of Jurisdiction Participation {#geomap_juris}
-
-```{r}
-#| label: geo-map
-#| echo: true
-#| code-fold: true
-#| code-summary: "Show jurisdiction mapping analysis code"
-
-jurisdiction_coords <- tibble::tribble(
-  ~jurisdiction_std,        ~lat,     ~lng,
-  "Alabama",         32.8067,  -86.7911,
-  "Alaska",         66.1605, -153.3691,
-  "Arizona",        33.7298, -111.4312,
-  "Arkansas",       34.9697,  -92.3731,
-  "California",     36.1162, -119.6816,
-  "Colorado",       39.0598, -105.3111,
-  "Connecticut",    41.5978,  -72.7554,
-  "Delaware",       39.3185,  -75.5071,
-  "DC/FBI Lab",     38.9072,  -77.0369,
-  "DC/Metro PD",    39.9072,  -77.0369,
-  "Florida",        27.7663,  -81.6868,
-  "Georgia",        33.0406,  -83.6431,
-  "Hawaii",         21.3068, -157.7912,
-  "Idaho",          44.2405, -114.4788,
-  "Illinois",       40.3495,  -88.9861,
-  "Indiana",        39.8494,  -86.2583,
-  "Iowa",           42.0115,  -93.2105,
-  "Kansas",         38.5266,  -96.7265,
-  "Kentucky",       37.6681,  -84.6701,
-  "Louisiana",      31.1695,  -91.8678,
-  "Maine",          44.6939,  -69.3819,
-  "Maryland",       39.0639,  -76.8021,
-  "Massachusetts",  42.2302,  -71.5301,
-  "Michigan",       43.3266,  -84.5361,
-  "Minnesota",      45.6945,  -93.9002,
-  "Mississippi",    32.7416,  -89.6787,
-  "Missouri",       38.4561,  -92.2884,
-  "Montana",        46.9219, -110.4544,
-  "Nebraska",       41.1254,  -98.2681,
-  "Nevada",         38.3135, -117.0554,
-  "New Hampshire",  43.4525,  -71.5639,
-  "New Jersey",     40.2989,  -74.5210,
-  "New Mexico",     34.8405, -106.2485,
-  "New York",       42.1657,  -74.9481,
-  "North Carolina", 35.6301,  -79.8064,
-  "North Dakota",   47.5289,  -99.7840,
-  "Ohio",           40.3888,  -82.7649,
-  "Oklahoma",       35.5653,  -96.9289,
-  "Oregon",         44.5720, -122.0709,
-  "Pennsylvania",   40.5908,  -77.2098,
-  "Rhode Island",   41.6809,  -71.5118,
-  "South Carolina", 33.8569,  -80.9450,
-  "South Dakota",   44.2998,  -99.4388,
-  "Tennessee",      35.7478,  -86.6923,
-  "Texas",          31.0545,  -97.5635,
-  "Utah",           40.1500, -111.8624,
-  "Vermont",        44.0459,  -72.7107,
-  "Virginia",       37.7693,  -78.1700,
-  "Washington",     47.4009, -121.4905,
-  "West Virginia",  38.4912,  -80.9545,
-  "Wisconsin",      44.2685,  -89.6165,
-  "Wyoming",        42.7560, -107.3025,
-  "US Army",        33.7443,  -86.4733,
-  "Puerto Rico",    18.2208,  -66.5901
+ggsave(
+  filename = file.path(fig_output_dir, "fig5_anomaly_distribution.pdf"),
+  plot = final_plot,
+  width = 14,
+  height = 16,
+  dpi = 300,
+  units = "in",
+  device = cairo_pdf
 )
 
-state_abbs <- tibble::tibble(
-  state = tolower(c(
-    "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
-    "Delaware", "Florida","Georgia","Hawaii","Idaho","Illinois",
-    "Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts",
-    "Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada",
-    "New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota",
-    "Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina",
-    "South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington",
-    "West Virginia","Wisconsin","Wyoming",
-    "DC/Metro PD",
-    "DC/FBI Lab",
-    "Puerto Rico",
-    "US Army"
-  )),
-  abb = c(
-    "AL","AK","AZ","AR","CA","CO","CT",
-    "DE","FL","GA","HI","ID","IL",
-    "IN","IA","KS","KY","LA","ME","MD","MA",
-    "MI","MN","MS","MO","MT","NE","NV",
-    "NH","NJ","NM","NY","NC","ND",
-    "OH","OK","OR","PA","RI","SC",
-    "SD","TN","TX","UT","VT","VA","WA",
-    "WV","WI","WY",
-    "DC",
-    "FBI",
-    "PR",
-    "US"
-  )
+ggsave(
+  filename = file.path(fig_output_dir, "fig5_anomaly_distribution.png"),
+  plot = final_plot,
+  width = 14,
+  height = 16,
+  dpi = 300,
+  units = "in"
 )
 
-map_data <- ndis_clean %>%
-  left_join(jurisdiction_coords, by = c("jurisdiction" = "jurisdiction_std"))
-
-set.seed(123) # for reproducibility
-
-map_data <- map_data %>%
-  group_by(lat, lng) %>%
-  mutate(
-    n = n(),
-    offset_needed = n > 1,
-    lat_offset = ifelse(offset_needed, runif(1, -0.5, 0.5), 0),
-    lng_offset = ifelse(offset_needed, runif(1, -0.5, 0.5), 0),
-    lat_adj = lat + lat_offset,
-    lng_adj = lng + lng_offset
-  ) %>%
-  ungroup()
-
-jurisdiction_summary <- map_data %>%
-  group_by(jurisdiction) %>%
-  filter(capture_datetime == max(capture_datetime, na.rm = TRUE)) %>%
-  ungroup() %>%
-  mutate(jurisdiction = tolower(trimws(jurisdiction))) %>% 
-  group_by(jurisdiction) %>%
-  summarise(
-    capture_datetime = max(capture_datetime, na.rm = TRUE),
-    offender = if (all(is.na(offender_profiles))) 0 else max(offender_profiles, na.rm = TRUE),
-    arrestee = if (all(is.na(arrestee))) 0 else max(arrestee, na.rm = TRUE),
-    forensic = if (all(is.na(forensic_profiles))) 0 else max(forensic_profiles, na.rm = TRUE),
-    total_profiles = sum(c(offender, arrestee, forensic), na.rm = TRUE),
-    lat_adj = first(lat_adj),
-    lng_adj = first(lng_adj)
-  ) %>%
-  left_join(state_abbs, by = c("jurisdiction" = "state")) %>%
-  filter(!is.na(lat_adj) & !is.na(lng_adj))
-
-pal <- colorNumeric(palette = "Blues", domain = jurisdiction_summary$total_profiles)
-
-leaflet() %>%
-  addTiles() %>%
-  addLabelOnlyMarkers(
-    data = jurisdiction_summary,
-    lng = ~lng_adj,
-    lat = ~lat_adj,
-    label = ~abb,
-    labelOptions = labelOptions(
-      noHide = TRUE,
-      direction = "center",
-      textOnly = FALSE,
-      style = list(
-        "background" = "white",
-        "border" = "2px solid #1a5276",
-        "border-radius" = "3px",
-        "padding" = "2px 4px",
-        "font-weight" = "bold",
-        "font-size" = "10px",
-        "color" = "#1a5276",
-        "box-shadow" = "2px 2px 4px rgba(0,0,0,0.3)"
-      )
-    )
-  ) %>%
-  addCircleMarkers(
-    data = jurisdiction_summary,
-    lng = ~lng_adj,
-    lat = ~lat_adj,
-    stroke = TRUE,
-    weight = 1,
-    popup = ~paste0(
-      "<div style='font-size:12px'>",
-      "<b>", tools::toTitleCase(jurisdiction), " (", abb, ")</b><br>",
-      "Date: ",  format(capture_datetime, "%Y-%m"), "<br>",
-      "Total: ", format(total_profiles, big.mark = ","), "<br>",
-      "Offender: ", format(offender, big.mark = ","), "<br>",
-      "Arrestee: ", format(arrestee, big.mark = ","), "<br>",
-      "Forensic: ", format(forensic, big.mark = ","),
-      "</div>"
-    )
-  ) %>%
-  addControl(
-    html = "<div style='background:white;padding:5px;border:2px solid #1a5276;border-radius:3px;font-weight:bold;'>NDIS 2025 State Participation</div>",
-    position = "topright"
-  ) %>%
-  setView(lng = -98.5833, lat = 39.8333, zoom = 4)
-
+cat(sprintf("\nSaved figure to: %s\n", fig_output_dir))
 ```
 
-### NDIS Time Series Dataset {#interactive-explore}
+## 7. Comparison with Peer-Reviewed Literature
 
-The `NDIS_time_series.csv` dataset retains key temporal, jurisdictional, and operational metrics that can be used for further analysis and visualization.
+As an additional validation check, we compare corrected national aggregates against published NDIS totals from FBI press releases and peer-reviewed articles. This comparison helps verify the technical quality of our NDIS time series reconstruction.
 
-| **Column**             | **Type**  | **Description**                                                                                       |
-| ---------------------- | --------- | ----------------------------------------------------------------------------------------------------- |
-| `capture_datetime`     | POSIXct   | Full timestamp of data capture, parsed from the raw `timestamp` field (`YYYY-MM-DD HH:MM:SS`).        |
-| `asof_date`            | Date      | Standardized date representing the reporting period (`asof_year` + `asof_month`, first day of month).                 |
-| `jurisdiction`         | Character | Name or code of the reporting jurisdiction (e.g., “California”, “Texas”).                             |
-| `offender_profiles`    | Numeric   | Number of DNA profiles from known offenders in the jurisdiction.                                      |
-| `arrestee`             | Numeric   | Number of DNA profiles collected from arrestees.                                                      |
-| `forensic_profiles`    | Numeric   | Number of DNA profiles developed from forensic (crime scene) samples.                                 |
-| `total_profiles`       | Numeric   | Sum of offender, arrestee, and forensic profiles for each record.                                     |
-| `ndis_labs`            | Integer   | Count of laboratories actively participating in NDIS for the given jurisdiction and month.            |
-| `investigations_aided` | Numeric   | Number of investigations aided by NDIS matches in the reporting period.                               |
-
-```{r}
-#| label: interactive-table
-#| echo: true
+```{python}
+#| label: compute-yearly-aggregates
 #| code-fold: true
-#| code-summary: "Show interactive table code"
+#| code-summary: "Show yearly aggregate computation code"
 
-summary_table <- ndis_clean %>%
-  group_by(jurisdiction, capture_datetime) %>%
-  arrange(jurisdiction, capture_datetime) %>%
-  select(
-    capture_datetime, asof_date, jurisdiction,
-    offender_profiles, arrestee, forensic_profiles, total_profiles,
-    ndis_labs, investigations_aided
-  )
+# Compute yearly aggregates from our cleaned data
+# For each jurisdiction-year, take the maximum value (end-of-year snapshot)
+df_clean = df[~(df["flag_decimal_spike_dip"] | df["flag_spike_dip"] | 
+                df["flag_ndis_labs_spike"] | df["flag_stale_exact_reappearance"])].copy()
 
-# Count the number of numeric columns (excluding the first 2 grouping columns)
-numeric_cols_start <- 3
-numeric_cols_end <- ncol(summary_table)  
+df_clean["year"] = df_clean["capture_datetime"].dt.year
 
-# Interactive table
-datatable(
-  summary_table,
-  extensions = c('Buttons', 'ColReorder', 'Scroller'),
-  options = list(
-    dom = 'Bfrtip',
-    buttons = c('copy', 'csv', 'excel', 'colvis'),
-    scrollX = TRUE,
-    scrollY = "600px",
-    scroller = TRUE,
-    pageLength = 20,
-    columnDefs = list(
-      list(className = 'dt-right', targets = (numeric_cols_start-1):(numeric_cols_end-1))
-    )
-  ),
-  rownames = FALSE,
-  filter = 'top'
+# Pivot to wide format and get max per jurisdiction-year
+yearly_by_jurisdiction = df_clean.groupby(["jurisdiction", "year", "metric_type"])["value"].max().reset_index()
+yearly_by_jurisdiction = yearly_by_jurisdiction.pivot_table(
+    index=["jurisdiction", "year"], 
+    columns="metric_type", 
+    values="value"
+).reset_index()
+
+# Sum across all jurisdictions for national totals
+growth_data_yearly = yearly_by_jurisdiction.groupby("year").agg({
+    "offender_profiles": "sum",
+    "arrestee": "sum",
+    "forensic_profiles": "sum",
+    "investigations_aided": "sum",
+    "ndis_labs": "sum"
+}).reset_index()
+
+# Fill NaN with 0 and compute total
+growth_data_yearly = growth_data_yearly.fillna(0)
+growth_data_yearly["total_profiles"] = (
+    growth_data_yearly["offender_profiles"] + 
+    growth_data_yearly["arrestee"] + 
+    growth_data_yearly["forensic_profiles"]
 )
 
+# Create date column (mid-year)
+growth_data_yearly["date"] = pd.to_datetime(growth_data_yearly["year"].astype(str) + "-06-01")
+
+print("Yearly national aggregates (cleaned data):")
+print(growth_data_yearly[["year", "offender_profiles", "arrestee", "forensic_profiles", "total_profiles", "investigations_aided"]].to_string())
 ```
 
-### Export Cleaned Dataset {#export-dataset}
-
-After cleaning and processing the NDIS data, the final dataset is exported as a CSV file for further analysis or sharing. The file is saved to `data/ndis/final/` so it can be referenced by other analyses. Use `analysis/version_freeze.qmd` whenever you need a versioned snapshot.
-
-**Output:** `NDIS_time_series.csv`
-
 ```{r}
-#| label: export-cleaned
-#| echo: false
-#| eval: true
-
-enhanced_glimpse(summary_table)
-```
-
-
-```{r}
-#| label: export-frozen
+#| label: crossref-plots
 #| code-fold: true
-#| echo: true
-#| code-summary: "Show dataset exportation code"
+#| code-summary: "Show cross-reference validation plots"
+#| fig-width: 14
+#| fig-height: 14
 
-ndis_clean <- ndis_clean %>%
-  select(
-    capture_datetime, asof_date, jurisdiction,
-    offender_profiles, arrestee, forensic_profiles, total_profiles,
-    ndis_labs, investigations_aided
+library(tidyverse)
+library(ggrepel)
+library(scales)
+library(patchwork)
+library(here)
+library(lubridate)
+library(qualpalr)
+
+# Load literature data
+literature_data <- read_csv(here("data", "ndis_crossref", "literature_data.csv"), show_col_types = FALSE) |>
+  mutate(asof_date = as.Date(asof_date))
+
+# Get yearly aggregates from Python via reticulate
+# Convert pandas DataFrame to R data.frame
+py_df <- py$growth_data_yearly
+growth_data <- data.frame(
+  year = as.numeric(py_df$year$values),
+  offender_profiles = as.numeric(py_df$offender_profiles$values),
+  arrestee = as.numeric(py_df$arrestee$values),
+  forensic_profiles = as.numeric(py_df$forensic_profiles$values),
+  investigations_aided = as.numeric(py_df$investigations_aided$values),
+  ndis_labs = as.numeric(py_df$ndis_labs$values),
+  total_profiles = as.numeric(py_df$total_profiles$values)
+) |>
+  mutate(date = as.Date(paste0(year, "-06-01")))
+
+# Define qualpal colors (matching manuscript_figures.qmd)
+qualpal_palette <- qualpal(
+  n = 10,
+  list(
+    h = c(190, 330),
+    s = c(0.35, 0.75),
+    l = c(0.45, 0.85)
+  )
+)
+qp_hex <- qualpal_palette$hex
+
+offender_color <- qp_hex[1]
+arrestee_color <- qp_hex[3]
+forensic_color <- qp_hex[4]
+total_color <- qp_hex[5]
+investigations_color <- qp_hex[6]
+
+# Extended date range for consistent x-axis
+extended_date_range <- c(
+  min(growth_data$date) - years(1),
+  max(growth_data$date) + years(1)
+)
+
+# Axis formatter
+scale_axis <- function(values) {
+  ifelse(values >= 1e6, paste0(values / 1e6, "M"),
+         ifelse(values >= 1e3, paste0(values / 1e3, "K"), values))
+}
+
+label_size <- 10 / .pt
+
+# Common theme
+theme_crossref <- theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(face = "bold", size = 13),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.3),
+    axis.line = element_line(color = "black", linewidth = 0.3),
+    axis.ticks = element_line(color = "black", linewidth = 0.3),
+    axis.text = element_text(color = "black", size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
   )
 
-# Write latest final dataset
-final_dir <- here("data", "ndis", "final")
-dir.create(final_dir, recursive = TRUE, showWarnings = FALSE)
-final_relative <- file.path("data", "ndis", "final", "NDIS_time_series.csv")
-final_path <- here(final_relative)
+# 1. Offender Profiles
+offender_lit <- filter(literature_data, !is.na(offender_profiles))
+p1 <- ggplot() +
+  geom_line(data = growth_data, aes(x = date, y = offender_profiles), 
+            color = offender_color, linewidth = 0.8) +
+  geom_point(data = growth_data, aes(x = date, y = offender_profiles), 
+             color = offender_color, size = 1.5) +
+  geom_point(data = offender_lit, aes(x = asof_date, y = offender_profiles), 
+             shape = 4, size = 2.5, stroke = 1, color = offender_color) +
+  geom_label_repel(
+    data = filter(offender_lit, year(asof_date) < 2020),
+    aes(x = asof_date, y = offender_profiles, label = short_label),
+    size = label_size, nudge_y = 4e6,
+    box.padding = 0.3, point.padding = 0.3, min.segment.length = 0.3,
+    segment.color = "gray50", max.overlaps = Inf,
+    fill = "white", label.size = 0.2
+  ) +
+  geom_label_repel(
+    data = filter(offender_lit, year(asof_date) >= 2020),
+    aes(x = asof_date, y = offender_profiles, label = short_label),
+    size = label_size, nudge_y = 1e6,
+    box.padding = 0.3, point.padding = 0.3, min.segment.length = 0.3,
+    segment.color = "gray50", max.overlaps = Inf,
+    fill = "white", label.size = 0.2
+  ) +
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y", limits = extended_date_range) +
+  scale_y_continuous(labels = scale_axis, limits = c(0, max(offender_lit$offender_profiles, na.rm = TRUE) * 1.15),
+                     expand = expansion(mult = c(0, 0.05))) +
+  labs(title = "(A) Offender Profiles", x = NULL, y = "Count") +
+  theme_crossref
 
-write_csv(ndis_clean, final_path)
-cat(paste("✓ Created final dataset at:", final_relative, "\n"))
+# 2. Arrestee Profiles  
+arrestee_lit <- filter(literature_data, !is.na(arrestee_profiles))
+p2 <- ggplot() +
+  geom_line(data = growth_data, aes(x = date, y = arrestee), 
+            color = arrestee_color, linewidth = 0.8) +
+  geom_point(data = growth_data, aes(x = date, y = arrestee), 
+             color = arrestee_color, size = 1.5) +
+  geom_point(data = arrestee_lit, aes(x = asof_date, y = arrestee_profiles), 
+             shape = 4, size = 2.5, stroke = 1, color = arrestee_color) +
+  geom_label_repel(
+    data = arrestee_lit,
+    aes(x = asof_date, y = arrestee_profiles, label = short_label),
+    size = label_size, nudge_y = 5e5,
+    box.padding = 0.3, point.padding = 0.3, min.segment.length = 0.3,
+    segment.color = "gray50", max.overlaps = Inf,
+    fill = "white", label.size = 0.2
+  ) +
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y", limits = extended_date_range) +
+  scale_y_continuous(labels = scale_axis, limits = c(0, max(arrestee_lit$arrestee_profiles, na.rm = TRUE) * 1.15),
+                     expand = expansion(mult = c(0, 0.05))) +
+  labs(title = "(B) Arrestee Profiles", x = NULL, y = "Count") +
+  theme_crossref
 
-cat("Use analysis/version_freeze.qmd to publish processed-data releases.\n")
+# 3. Forensic Profiles
+forensic_lit <- filter(literature_data, !is.na(forensic_profiles))
+p3 <- ggplot() +
+  geom_line(data = growth_data, aes(x = date, y = forensic_profiles), 
+            color = forensic_color, linewidth = 0.8) +
+  geom_point(data = growth_data, aes(x = date, y = forensic_profiles), 
+             color = forensic_color, size = 1.5) +
+  geom_point(data = forensic_lit, aes(x = asof_date, y = forensic_profiles), 
+             shape = 4, size = 2.5, stroke = 1, color = forensic_color) +
+  geom_label_repel(
+    data = filter(forensic_lit, year(asof_date) < 2020),
+    aes(x = asof_date, y = forensic_profiles, label = short_label),
+    size = label_size, nudge_y = 4e5,
+    box.padding = 0.3, point.padding = 0.3, min.segment.length = 0.3,
+    segment.color = "gray50", max.overlaps = Inf,
+    fill = "white", label.size = 0.2
+  ) +
+  geom_label_repel(
+    data = filter(forensic_lit, year(asof_date) >= 2020),
+    aes(x = asof_date, y = forensic_profiles, label = short_label),
+    size = label_size, nudge_y = 1e5,
+    box.padding = 0.3, point.padding = 0.3, min.segment.length = 0.3,
+    segment.color = "gray50", max.overlaps = Inf,
+    fill = "white", label.size = 0.2
+  ) +
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y", limits = extended_date_range) +
+  scale_y_continuous(labels = scale_axis, limits = c(0, max(forensic_lit$forensic_profiles, na.rm = TRUE) * 1.15),
+                     expand = expansion(mult = c(0, 0.05))) +
+  labs(title = "(C) Forensic Profiles", x = NULL, y = "Count") +
+  theme_crossref
+
+# 4. Total Profiles
+total_lit <- filter(literature_data, !is.na(total_profiles))
+p4 <- ggplot() +
+  geom_line(data = growth_data, aes(x = date, y = total_profiles), 
+            color = total_color, linewidth = 0.8) +
+  geom_point(data = growth_data, aes(x = date, y = total_profiles), 
+             color = total_color, size = 1.5) +
+  geom_point(data = total_lit, aes(x = asof_date, y = total_profiles), 
+             shape = 4, size = 2.5, stroke = 1, color = total_color) +
+  geom_label_repel(
+    data = filter(total_lit, year(asof_date) < 2015),
+    aes(x = asof_date, y = total_profiles, label = short_label),
+    size = label_size, nudge_y = 6e6, nudge_x = -200,
+    box.padding = 0.5, point.padding = 0.5, min.segment.length = 0.3,
+    segment.color = "gray50", max.overlaps = Inf, direction = "both",
+    fill = "white", label.size = 0.2
+  ) +
+  geom_label_repel(
+    data = filter(total_lit, year(asof_date) >= 2015 & year(asof_date) < 2020),
+    aes(x = asof_date, y = total_profiles, label = short_label),
+    size = label_size, nudge_y = 4e6,
+    box.padding = 0.5, point.padding = 0.5, min.segment.length = 0.3,
+    segment.color = "gray50", max.overlaps = Inf, direction = "both",
+    fill = "white", label.size = 0.2
+  ) +
+  geom_label_repel(
+    data = filter(total_lit, year(asof_date) >= 2020),
+    aes(x = asof_date, y = total_profiles, label = short_label),
+    size = label_size, nudge_y = 2e6, nudge_x = -300,
+    box.padding = 0.5, point.padding = 0.5, min.segment.length = 0.3,
+    segment.color = "gray50", max.overlaps = Inf, direction = "x",
+    fill = "white", label.size = 0.2
+  ) +
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y", limits = extended_date_range) +
+  scale_y_continuous(labels = scale_axis, limits = c(0, max(total_lit$total_profiles, na.rm = TRUE) * 1.2),
+                     expand = expansion(mult = c(0, 0.05))) +
+  labs(title = "(D) Total Profiles", x = NULL, y = "Count") +
+  theme_crossref
+
+# 5. Investigations Aided (full width at bottom)
+investigations_lit <- filter(literature_data, !is.na(investigations_aided))
+p5 <- ggplot() +
+  geom_line(data = growth_data, aes(x = date, y = investigations_aided), 
+            color = investigations_color, linewidth = 0.8) +
+  geom_point(data = growth_data, aes(x = date, y = investigations_aided), 
+             color = investigations_color, size = 1.5) +
+  geom_point(data = investigations_lit, aes(x = asof_date, y = investigations_aided), 
+             shape = 4, size = 2.5, stroke = 1, color = investigations_color) +
+  geom_label_repel(
+    data = filter(investigations_lit, year(asof_date) < 2021),
+    aes(x = asof_date, y = investigations_aided, label = short_label),
+    size = label_size, nudge_y = 80000,
+    box.padding = 0.3, point.padding = 0.3, min.segment.length = 0.3,
+    segment.color = "gray50", direction = "both", max.overlaps = Inf,
+    fill = "white", label.size = 0.2
+  ) +
+  geom_label_repel(
+    data = filter(investigations_lit, year(asof_date) == 2021),
+    aes(x = asof_date, y = investigations_aided, label = short_label),
+    size = label_size, nudge_y = 10000, nudge_x = 400,
+    box.padding = 0.3, point.padding = 0.3, min.segment.length = 0.3,
+    segment.color = "gray50", max.overlaps = Inf,
+    fill = "white", label.size = 0.2
+  ) +
+  geom_label_repel(
+    data = filter(investigations_lit, year(asof_date) > 2021),
+    aes(x = asof_date, y = investigations_aided, label = short_label),
+    size = label_size, nudge_y = 15000, nudge_x = -300, direction = "x",
+    box.padding = 0.3, point.padding = 0.3, min.segment.length = 0.3,
+    segment.color = "gray50", max.overlaps = Inf,
+    fill = "white", label.size = 0.2
+  ) +
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y", limits = extended_date_range) +
+  scale_y_continuous(labels = scale_axis, limits = c(0, max(investigations_lit$investigations_aided, na.rm = TRUE) * 1.15),
+                     expand = expansion(mult = c(0, 0.05))) +
+  labs(title = "(E) Investigations Aided", x = "Year", y = "Count") +
+  theme_crossref
+
+# Combine plots - 3 rows: top row 2 plots, middle row 2 plots, bottom row full width
+fig7_verification <- (p1 + p2) / (p3 + p4) / p5 +
+  plot_layout(heights = c(1, 1, 1)) +
+  plot_annotation(
+    title = "Cross-Validation: Our Data vs. Published Literature",
+    subtitle = "X markers show published values from FBI brochures and peer-reviewed papers",
+    theme = theme(plot.title = element_text(face = "bold", size = 14))
+  )
+
+fig7_verification
+
+# Save figure
+fig_output_dir <- here("output", "figures", "manuscript_figures")
+dir.create(fig_output_dir, recursive = TRUE, showWarnings = FALSE)
+
+ggsave(
+  filename = file.path(fig_output_dir, "fig7_verification_grid.pdf"),
+  plot = fig7_verification,
+  width = 14,
+  height = 14,
+  dpi = 300,
+  units = "in",
+  device = cairo_pdf
+)
+
+ggsave(
+  filename = file.path(fig_output_dir, "fig7_verification_grid.png"),
+  plot = fig7_verification,
+  width = 14,
+  height = 14,
+  dpi = 300,
+  units = "in"
+)
+
+cat(sprintf("\nSaved fig7_verification_grid to: %s\n", fig_output_dir))
 ```

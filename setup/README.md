@@ -5,15 +5,27 @@ This directory contains all setup and installation scripts for the PODFRIDGE-Dat
 ## Files
 
 ### `setup.sh`
-Automated setup script that installs all dependencies (Python and R packages).
+Automated setup script that:
+- Creates a Python virtual environment at `.venv/`
+- Installs Python dependencies for analysis
+- Registers a Jupyter kernel named "podfridge" for Quarto
+- Installs R packages
 
 **Usage:**
 ```bash
 bash setup/setup.sh
 ```
 
+### `requirements-analysis.txt`
+Core Python dependencies for running the analysis notebooks (pandas, numpy, matplotlib, ipykernel).
+
+**Usage:**
+```bash
+pip install -r setup/requirements-analysis.txt
+```
+
 ### `requirements.txt`
-Complete Python package dependencies for the project (generated from the virtual environment).
+Complete Python package dependencies (full pip freeze from the development environment).
 
 **Usage:**
 ```bash
@@ -45,9 +57,10 @@ From the project root directory:
 bash setup/setup.sh
 
 # Option 2: Manual Python setup
-python3 -m venv podfridge-db-env
-source podfridge-db-env/bin/activate  # On Windows: podfridge-db-env\Scripts\activate
-pip install -r setup/requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r setup/requirements-analysis.txt
+python -m ipykernel install --user --name=podfridge --display-name="PODFRIDGE (Python)"
 
 # Option 3: Manual R setup
 Rscript setup/install.R
@@ -55,18 +68,22 @@ Rscript setup/install.R
 
 ## Virtual Environment
 
-The project uses a Python virtual environment located at `podfridge-db-env/` in the project root. This keeps dependencies isolated from your system Python installation.
+The project uses a Python virtual environment located at `.venv/` in the project root. This keeps dependencies isolated from your system Python installation.
 
 **Activate the environment:**
 ```bash
 # macOS/Linux
-source podfridge-db-env/bin/activate
+source .venv/bin/activate
 
 # Windows
-podfridge-db-env\Scripts\activate
+.venv\Scripts\activate
 ```
 
 **Deactivate:**
 ```bash
 deactivate
 ```
+
+## Jupyter Kernel for Quarto
+
+The setup script registers a Jupyter kernel named "podfridge" that Quarto uses to execute Python code blocks. When opening a `.qmd` file with Python code, select "PODFRIDGE (Python)" as the kernel.

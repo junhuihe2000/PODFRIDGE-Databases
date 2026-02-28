@@ -153,34 +153,25 @@ Figure \ref{fig:file_structure} presents a visual representation of the hierarch
 
 \subsection*{National DNA Index System (NDIS)}
 
-We validated the NDIS time series by testing temporal consistency within each jurisdiction and at the national aggregate level. Because the counts of offender, arrestee, and forensic profiles, as well as investigations aided, are cumulative measures, they are expected to increase monotonically across successive data snapshots. Although occasional expungements may occur, such legitimate decreases should be distinguishable from reporting artifacts through systematic anomaly detection. Here we describe our attempt to conservatively remove unambiguous (primarily typographical) errors and we encourage any users of this data to analyze both the raw and intermediate files in addition to the clean files in our `data/ndis` folder (see \ref{fig:file_structure}) as they may wish to set their own definitions of what constitutes an anomaly in the data or analyze the anomalies themselves in their own right.
+We validated the NDIS time series by testing temporal consistency within each jurisdiction and at the national aggregate level. Because the counts of offender, arrestee, and forensic profiles, as well as investigations aided, are cumulative measures, they are expected to increase monotonically across successive data snapshots. Although occasional expungements may occur, such legitimate decreases should be distinguishable from reporting artifacts through systematic anomaly detection. Rather than removing anomalous values, we developed a flagging system that marks suspicious data points with boolean columns, preserving all original values and allowing users to apply their own filtering criteria. We encourage users to analyze both the flagged final data and the raw and intermediate files in our \texttt{data/ndis} folder (see Figure~\ref{fig:file_structure}), as they may wish to set their own definitions of what constitutes an anomaly.
 
-To identify and correct data-quality issues while preserving genuine profile removals, we developed a multi-category anomaly detection framework. For each jurisdiction $j$, metric $x$, and capture time $t$, we examined patterns in the recorded count $N_{j,t}^{(x)}$ relative to adjacent observations.
+To identify data-quality issues, we developed a sequential flagging pipeline. For each jurisdiction $j$, metric $x$, and capture time $t$, we compared the recorded count $N_{j,t}^{(x)}$ against the most recent \textit{unflagged} value (baseline) for that jurisdiction-metric pair. All spike and dip rules use a recovery window of at least 6 months, extended if needed to ensure at least 10 data points. This dual threshold ensures that transient errors (which should be corrected within months as the website is refreshed) are distinguished from genuine changes: if a value persists beyond the recovery window without returning to baseline, it is treated as a real change and the baseline is updated.
 
-\textbf{Spike-Dip detection.} We flagged isolated deviations from the trajectory established by adjacent observations:
-\begin{itemize}
-\item $N_{j,t}^{(x)} > 2 \times N_{j,t-1}^{(x)}$ (more than double the previous value)
-\item $N_{j,t}^{(x)} < 0.5 \times N_{j,t-1}^{(x)}$ (less than half the previous value)
-\item $N_{j,t}^{(x)} > 2 \times N_{j,t+1}^{(x)}$ (more than double the next value)
-\item $N_{j,t}^{(x)} < 0.5 \times N_{j,t+1}^{(x)}$ (less than half the next value)
-\end{itemize}
+The four flagging rules are applied sequentially, so that values flagged by earlier rules are excluded from baseline comparisons in subsequent rules:
 
-Continuation of spike-dip patterns was detected when a previously flagged point showed recovery toward normal levels. These temporary surges or isolated dips indicate reporting synchronization anomalies rather than genuine profile count changes.
+\textbf{1. Decimal spike-dip} (\texttt{flag\_decimal\_spike\_dip}). Applied to all metrics. This rule detects suspected decimal place entry errors by flagging values where $N_{j,t}^{(x)} > 8 \times \text{baseline}$ or $N_{j,t}^{(x)} < 0.125 \times \text{baseline}$, provided recovery toward the baseline occurs within the recovery window.
 
-\textbf{Zero error detection.} We identified instances where zero values appeared following positive counts, which cannot occur in cumulative profile data: (1) A zero appearing after positive values was flagged as ``zero\_error'' or (2) Consecutive zeros following the initial error were flagged as ``cont\_zero\_error''. All consecutive zero values from the first anomalous zero through recovery to positive numbers were removed as a cohesive error sequence.
+\textbf{2. Spike-dip} (\texttt{flag\_spike\_dip}). Applied to offender profiles, forensic profiles, arrestee profiles, and investigations aided. This rule flags sudden doublings or halvings: $N_{j,t}^{(x)} > 2 \times \text{baseline}$ or $N_{j,t}^{(x)} < 0.5 \times \text{baseline}$, again requiring recovery within the window.
 
-\textbf{Update lag detection.} We detected system synchronization delays manifesting as oscillations within compressed timeframes. Values showing decreases or stability relative to neighbors within a 48-hour window (2 days between successive observations) indicated transient states during database synchronization across multiple systems. Within each oscillation cluster, only the highest value, representing the true profile count, was retained; lower values reflecting intermediate synchronization states were removed. For Investigations Aided and Forensic Profiles, the update lag detection window was calibrated to the specific patterns observed in those metrics.
+\textbf{3. NDIS labs spike} (\texttt{flag\_ndis\_labs\_spike}). Applied to NDIS laboratory counts only. Because lab counts are small integers (typically 1--20), a lower threshold is used: $N_{j,t}^{(x)} > 3 \times \text{baseline}$ or $N_{j,t}^{(x)} < 0.33 \times \text{baseline}$.
 
-\textbf{Value propagation.} Following identification of flagged anomalies, any subsequent data point within the jurisdiction matching the exact value of a previously flagged point was also removed, as this pattern indicated persistent propagation of the initial error across reporting cycles. This rule was not applied to Participating Laboratories given the discrete nature of laboratory counts.
+\textbf{4. Stale exact reappearance} (\texttt{flag\_stale\_exact\_reappearance}). Applied to offender profiles, forensic profiles, and arrestee profiles. This rule flags instances where an exact earlier value reappears after higher values have been recorded, indicating cached or stale data served by the FBI website. Consecutive identical values are not flagged, as these represent legitimate unchanged counts between reporting periods.
 
-\textbf{Metric-specific adjustments.}  
-The same logic was applied across metrics with modest threshold adjustments. Offender and forensic series used the two-fold spike–dip thresholds described above, with forensic series using a slightly higher upper threshold (2.5$\times$) and shorter update-lag windows. Arrestee profiles (from January 1, 2012 onward) exhibited only zero-after-positive anomalies; thus only the zero-error rule was required in practice. Investigations-aided series primarily required the 10-fold spike threshold together with the zero-error and propagation rules. NDIS laboratory counts are small integers; therefore only empirically justified jurisdiction-specific thresholds (threefold increases in Oklahoma and drops to 25\% or less in Michigan) were used. Zero-after-positive and propagation rules were not applied to laboratory counts.
-
-All anomaly flags (zero errors, spike–dips, continuation events, oscillations, and propagated anomalies) are preserved in the anomaly log. The cleaned series represents a deliberately conservative approach: we remove only values that clearly contradict the behavior of cumulative reporting systems while retaining plausible decreases.
+All flags are preserved as boolean columns in the released dataset. This approach allows users to filter the data according to their own analysis needs---for example, excluding all flagged rows for a conservative analysis or retaining them to study reporting patterns.
 
 \paragraph{Anomaly summary.}
 
-Using these rules, we detected 477 anomalies across all metrics and jurisdictions (Figure~\ref{fig:anomalies}). These included spike–dip events ($278$), update-lag oscillations ($186$), and zero-errors ($13$). Offender profiles showed the highest number of anomalies ($213$), followed by forensic profiles ($177$), investigations aided ($71$), NDIS laboratories ($10$), and arrestee profiles ($6$). Figure~\ref{fig:heatmaps} compares raw and cleaned snapshot coverage.
+Using these rules, we identified 898 flags across all metrics and jurisdictions (Figure~\ref{fig:anomalies}). The majority were stale exact reappearances ($743$), followed by spike-dip events ($77$), decimal spike-dip errors ($68$), and NDIS labs spikes ($10$). By metric, offender profiles had the most flags ($420$), followed by forensic profiles ($379$), investigations aided ($49$), arrestee profiles ($40$), and NDIS laboratories ($10$). Figure~\ref{fig:heatmaps} shows the temporal coverage of NDIS snapshots and the distribution of time gaps between captures.
 
 \paragraph{External calibration.}
 
@@ -188,15 +179,15 @@ After cleaning, we compared national totals to independent reference points from
 
 \begin{figure}[ht!]
 \centering
-\includegraphics[width=\textwidth]{fig5_anomaly_log.pdf}
-\caption{\textbf{Anomalies distribution per state.} A stacked bar plot detailing anomalies in Offender Profiles (magenta), Forensic Profiles (pink), Arrestee Profiles (cyan), Investigations Aided (turquiose) and NDIS Labs (purple) cataloged by state and corrected across all metrics and jurisdictions. Wyoming's high values can be explained by flagged value propagation in the early years, which may be due to periods where no updates were made.}
+\includegraphics[width=\textwidth]{fig5_anomaly_distribution.pdf}
+\caption{\textbf{Anomaly flag distribution.} A four-panel stacked bar chart showing the distribution of data quality flags across jurisdictions, broken down by flag type: decimal spike-dip, spike-dip, NDIS labs spike, and stale exact reappearance. Each panel shows the count of flags per jurisdiction for a given flag category, colored by metric type.}
 \label{fig:anomalies}
 \end{figure}
 
 \begin{figure}[ht!]
 \centering
-\includegraphics[width=\textwidth]{fig6_heatmap_raw_clean.pdf}
-\caption{\textbf{NDIS snapshot heatmaps}. Heatmaps showcasing NDIS snapshots captured raw (A) and those retained after cleaning (B) the NDIS time series dataset.}
+\includegraphics[width=\textwidth]{fig6_time_gap_analysis.pdf}
+\caption{\textbf{NDIS time gap analysis.} Heatmaps and distributions showing the temporal coverage of NDIS snapshots across jurisdictions and the gaps between successive captures, illustrating the density and regularity of archived FBI data availability over time.}
 \label{fig:heatmaps}
 \end{figure}
 

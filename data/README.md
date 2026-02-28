@@ -29,7 +29,8 @@ data/
 │   ├── final/
 │   └── raw/
 └── versioned_data/
-    └── 20251110T035752Z/
+    ├── 20251110T164132Z/
+    └── 20260224T145847Z/
 ```
 
 
@@ -54,41 +55,54 @@ data/
 
 | Dataset | Rows | Time Coverage | Spatial Coverage | Source |
 |---------|------|---------------|------------------|--------|
-| `NDIS_time_series.csv` | 9,442 | 2001-2025 | 54 jurisdictions | FBI CODIS-NDIS Statistics (Wayback Machine Internet Archive) |
+| `ndis_time_series.csv` | 160,045 | 2001-2025 | 54 jurisdictions | FBI CODIS-NDIS Statistics (Wayback Machine Internet Archive) |
 | `SDIS_cross_section.csv` | 50 | 1996-2017 | 50 states | Web Searches |
-| `FOIA_demographics.csv` | 202 | 2018 | 7 states | Murphy & Tong (2020) |
+| `foia_data_clean.csv` | 202 | 2018 | 7 states | Murphy & Tong (2020) |
 | `Annual_DNA_Collection.csv` | 50 | 1996-2017 | 50 states | Murphy & Tong (2020) Appendix |
 
 
 ---
 
-## 1. NDIS_time_series.csv
+## 1. ndis_time_series.csv
 
-**Description:** Monthly time series of National DNA Index System (NDIS) statistics reconstructed from archived FBI webpages.
+**Description:** Time series of National DNA Index System (NDIS) statistics reconstructed from archived FBI webpages, in long format with data quality flags.
 
-**Source:** FBI CODIS-NDIS Statistics pages, accessed via Internet Archive Wayback Machine  
-**Temporal Coverage:** July 2001 - July 2025  
-**Spatial Coverage:** 54 jurisdictions (50 states + DC + FBI Lab + US Army + Puerto Rico)  
+**Source:** FBI CODIS-NDIS Statistics pages, accessed via Internet Archive Wayback Machine
+**Temporal Coverage:** July 2001 - August 2025
+**Spatial Coverage:** 54 jurisdictions (50 states + DC + FBI Lab + US Army + Puerto Rico)
+**Format:** Long format — one row per jurisdiction per capture timestamp per metric type
 
 ### Column Definitions
 
 | Column | Type | Description | Format/Units | Notes |
 |--------|------|-------------|--------------|-------|
-| `jurisdiction` | character | Name of reporting jurisdiction | Standardized state/territory names | Includes 50 states, DC, and federal entities (FBI Lab, US Army) |
-| `year_month` | character | Report date from wayback machine timestamp (before 2007) and webpage "as of" statement (after 2007) | YYYY-MM-DD (first day of month) | Parsed from FBI webpage; distinct from capture date |
-| `offender_profiles` | integer | Cumulative count of offender profiles in NDIS | Count | Includes convicted offenders; monotonically increasing |
-| `arrestee` | integer | Cumulative count of arrestee profiles in NDIS | Count | Only available 2012+; NA for earlier periods |
-| `forensic_profiles` | integer | Cumulative count of forensic (crime scene) profiles | Count | Monotonically increasing |
-| `investigations_aided` | integer | Cumulative investigations aided by CODIS | Count | "Hits" that led to investigative leads |
-| `ndis_labs` | integer | Number of participating NDIS laboratories | Count | Can increase or decrease as labs join/leave |
+| `capture_datetime` | datetime | Timestamp when the Wayback Machine captured the FBI snapshot | YYYY-MM-DD HH:MM:SS | From Internet Archive metadata |
+| `asof_date` | date | Date reported by FBI on the webpage ("as of" statement) | YYYY-MM-DD | Parsed from FBI webpage; NA for pre-2007 pages that lacked this field |
+| `jurisdiction` | character | Name of reporting jurisdiction | Standardized state/territory names | Includes 50 states, DC, and federal entities (FBI Lab, US Army, Puerto Rico) |
+| `source_file` | character | Original HTML filename from the Wayback Machine download | Filename string | Enables traceability to raw archived snapshots |
+| `metric_type` | character | Type of statistic reported | `offender_profiles`, `arrestee`, `forensic_profiles`, `ndis_labs`, `investigations_aided` | Each metric is a separate row |
+| `value` | numeric | The count/number extracted from the FBI webpage | Count | Cumulative for profiles and investigations; point-in-time for labs |
+| `flag_decimal_spike_dip` | boolean | Flagged if value suggests a decimal place entry error | True/False | Triggered when value is >8x or <0.125x the previous unflagged value |
+| `flag_spike_dip` | boolean | Flagged if value shows a sudden doubling or halving | True/False | Triggered when value is >2x or <0.5x the previous unflagged value. Applied to offender_profiles, forensic_profiles, arrestee, investigations_aided |
+| `flag_ndis_labs_spike` | boolean | Flagged if NDIS lab count shows an unusual change | True/False | Triggered when value is >3x or <0.33x the previous unflagged value. Applied to ndis_labs only |
+| `flag_stale_exact_reappearance` | boolean | Flagged if an exact earlier value reappears after higher values were recorded | True/False | Indicates cached or stale data from the FBI website. Consecutive identical values are not flagged |
+
+**Data Quality Flagging:**
+- A recovery window of 6 months minimum OR 10 data points (whichever is larger) is used when comparing values
+- All comparisons are made against the previous *unflagged* value for each jurisdiction-metric pair
+- Flags are applied sequentially: decimal_spike_dip → spike_dip → ndis_labs_spike → stale_exact_reappearance
+- Flagged rows are retained in the dataset; users can filter on flag columns as needed
+- 898 total flags across all jurisdictions: 743 stale_exact_reappearance, 77 spike_dip, 68 decimal_spike_dip, 10 ndis_labs_spike
 
 **Missing Data Patterns:**
-- `arrestee`: NA for all records before 2012 (not collected)
+- `arrestee` metric: only present from 2012 onward (not collected earlier)
+- `asof_date`: NA for pre-2007 pages that did not include an "as of" statement
 - Some jurisdictions have intermittent reporting gaps
 
 **Data Quality Notes:**
-- Outliers and monotonicity violations detected have been flagged and corrected
-- Original uncorrected data available in `intermediate/` and `raw/` subfolders in `data/` for each respective dataset
+- Anomalous values are flagged with boolean columns but NOT removed; original values are preserved
+- Original uncorrected data available in `intermediate/` and `raw/` subfolders in `data/ndis/`
+- The `anomaly_log.csv` in `data/ndis/intermediate/` provides a detailed record of all flagged entries
 
 ---
 
@@ -211,5 +225,5 @@ data/
 - Racial/ethnic categories may not align perfectly across states due to reporting differences
 
 
-**Last updated:** 2025-11-10
+**Last updated:** 2026-02-24
 **Zenodo DOI:** [10.5281/zenodo.17215677](https://doi.org/10.5281/zenodo.17215677)

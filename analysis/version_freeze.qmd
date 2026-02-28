@@ -25,8 +25,8 @@ Update the description fields if you want to add extra context to the release.
 #| label: version-settings
 #| echo: true
 
-version_message <- "Processed-data freeze capturing all final datasets." #version message, short overview
-version_note <- "Highlights: Initial data versioning." #update version note as needed with details
+version_message <- "NDIS data quality flagging pipeline update; all final datasets re-frozen." #version message, short overview
+version_note <- "Highlights: NDIS time series converted to long format with 4 boolean flag columns (flag_decimal_spike_dip, flag_spike_dip, flag_ndis_labs_spike, flag_stale_exact_reappearance). Anomalies are now flagged rather than removed. Other datasets unchanged." #update version note as needed with details
 ```
 
 ## Setup

@@ -141,7 +141,7 @@ data/
 
 ---
 
-## 3. FOIA_demographics.csv
+## 3. foia_data_clean.csv
 
 **Description:** Demographic composition (race/gender) of state DNA databases from FOIA responses documented in Murphy & Tong (2020).
 

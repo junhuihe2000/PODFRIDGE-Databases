@@ -240,102 +240,112 @@ ggsave(
 data_file <- file.path(here("data", "ndis", "intermediate", "anomaly_log.csv"))
 anomaly_log <- read_csv(data_file, show_col_types = FALSE)
 
+# --- Layout: panels by flag type, colors by metric type, free y-axes ---
+
 metric_order <- c("Offender Profiles", "Forensic Profiles", "Arrestee Profiles",
                   "Investigations Aided", "NDIS Labs")
 
-# Use viridis-inspired colors for flag types
-flag_colors <- c(
-  "decimal_spike_dip" = "#440154",        # Deep purple (viridis)
-  "spike_dip" = "#31688e",                 # Blue (viridis)
-  "ndis_labs_spike" = "#35b779",           # Green (viridis)
-  "stale_exact_reappearance" = "#fde725"   # Yellow (viridis)
-)
-
-# Flag type display labels
-flag_labels <- c(
+flag_order <- c("decimal_spike_dip", "spike_dip", "ndis_labs_spike",
+                "stale_exact_reappearance")
+flag_panel_labels <- c(
   "decimal_spike_dip" = "Decimal Error",
   "spike_dip" = "Spike/Dip",
   "ndis_labs_spike" = "Labs Spike",
   "stale_exact_reappearance" = "Stale Cache"
 )
 
-# Get ALL jurisdictions alphabetically (for consistent x-axis across panels)
+metric_colors <- c(
+  "Offender Profiles" = "#440154",
+  "Forensic Profiles" = "#31688e",
+  "Arrestee Profiles" = "#21918c",
+  "Investigations Aided" = "#5ec962",
+  "NDIS Labs" = "#fde725"
+)
+
+# All jurisdictions for consistent x-axis
 all_jurisdictions <- anomaly_log %>%
   pull(jurisdiction) %>%
   unique() %>%
   sort()
 
-# Prepare data: count by metric, jurisdiction, and flag type
+# Prepare data: count by flag type, jurisdiction, and metric
 anomaly_plot_data <- anomaly_log %>%
-  group_by(metric, jurisdiction, flag_type) %>%
+  group_by(flag_type, jurisdiction, metric) %>%
   summarise(count = n(), .groups = "drop") %>%
   mutate(
-    metric = factor(metric, levels = metric_order),
-    flag_type = factor(flag_type, levels = names(flag_colors)),
+    flag_type = factor(flag_type, levels = flag_order),
+    metric = factor(metric, levels = names(metric_colors)),
     jurisdiction = factor(jurisdiction, levels = all_jurisdictions)
   )
 
-# Calculate global y-axis max (sum of all flag types per jurisdiction per metric)
-y_max_global <- anomaly_plot_data %>%
-  group_by(metric, jurisdiction) %>%
-  summarise(total = sum(count), .groups = "drop") %>%
-  pull(total) %>%
-  max(na.rm = TRUE)
-
-# Add 10% padding
-y_max_global <- ceiling(y_max_global * 1.1)
-
-# Common theme for panels (legend will be collected at bottom)
+# Common theme for panels (legend suppressed; one shared legend added below)
 theme_panel <- theme_minimal(base_size = 10) +
   theme(
     panel.grid = element_blank(),
     axis.line = element_line(color = "black", linewidth = 0.4),
     axis.ticks = element_line(color = "black", linewidth = 0.4),
     axis.text = element_text(color = "black", size = 8),
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 6),
     axis.title.x = element_blank(),
     axis.title.y = element_text(size = 10, face = "bold", margin = margin(r = 5)),
-    legend.position = "bottom",
-    legend.title = element_text(face = "bold", size = 12),
-    legend.text = element_text(size = 11),
-    legend.key.size = unit(0.6, "cm"),
     plot.title = element_text(face = "bold", size = 11),
-    plot.margin = margin(t = 5, r = 5, b = 2, l = 5)
+    plot.margin = margin(t = 5, r = 5, b = 2, l = 5),
+    legend.position = "none"
   )
 
-# Create individual panels for each metric with consistent y-axis
-create_metric_panel <- function(metric_name, panel_label, y_max) {
-  plot_data <- anomaly_plot_data %>%
-    filter(metric == metric_name)
-  
-  ggplot(plot_data, aes(x = jurisdiction, y = count, fill = flag_type)) +
+shared_fill <- scale_fill_manual(
+  name = "Metric Type", values = metric_colors, drop = FALSE
+)
+
+# Create individual panels for each flag type with free y-axis
+create_flag_panel <- function(flag_name, panel_label) {
+  d <- anomaly_plot_data %>% filter(flag_type == flag_name)
+  ggplot(d, aes(x = jurisdiction, y = count, fill = metric)) +
     geom_bar(stat = "identity", position = "stack", color = "black",
              linewidth = 0.2, width = 0.8) +
-    scale_fill_manual(name = "Anomaly Type", values = flag_colors, labels = flag_labels,
-                      drop = FALSE) +
+    shared_fill +
     scale_x_discrete(limits = all_jurisdictions, drop = FALSE) +
-    scale_y_continuous(limits = c(0, y_max), expand = expansion(mult = c(0, 0))) +
-    labs(title = paste0(panel_label, " ", metric_name), y = "Count") +
-    theme_panel +
-    guides(fill = guide_legend(nrow = 1))
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+    labs(title = paste0(panel_label, " ", flag_panel_labels[flag_name]), y = "Count") +
+    theme_panel
 }
 
-# Create panels with consistent y-axis
-p_offender <- create_metric_panel("Offender Profiles", "(A)", y_max_global)
-p_forensic <- create_metric_panel("Forensic Profiles", "(B)", y_max_global)
-p_arrestee <- create_metric_panel("Arrestee Profiles", "(C)", y_max_global)
-p_investigations <- create_metric_panel("Investigations Aided", "(D)", y_max_global)
+p1 <- create_flag_panel("decimal_spike_dip", "(A)")
+p2 <- create_flag_panel("spike_dip", "(B)")
+p3 <- create_flag_panel("ndis_labs_spike", "(C)")
+p4 <- create_flag_panel("stale_exact_reappearance", "(D)")
 
-# Combine panels vertically with shared legend at bottom using patchwork
-final_plot <- (p_offender / p_forensic / p_arrestee / p_investigations) +
-  plot_layout(heights = c(1, 1, 1, 1), guides = "collect") +
+# Build a standalone legend grob from a dummy plot
+legend_source <- ggplot(anomaly_plot_data, aes(x = jurisdiction, y = count, fill = metric)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(name = "Metric Type", values = metric_colors, drop = FALSE) +
+  guides(fill = guide_legend(nrow = 1)) +
+  theme(
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold", size = 14),
+    legend.text = element_text(size = 13),
+    legend.key.size = unit(0.8, "cm"),
+    legend.spacing.x = unit(0.5, "cm")
+  )
+shared_legend <- cowplot::get_plot_component(legend_source, "guide-box-bottom")
+
+# Stack panels with patchwork (free y-axes across panels)
+panels <- (p1 / p2 / p3 / p4) +
+  plot_layout(heights = c(1, 1, 1, 1)) +
   plot_annotation(
-    title = "Anomaly Distribution by Metric and Jurisdiction",
+    title = "Anomaly Distribution by Flag Type and Jurisdiction",
     theme = theme(
       plot.title = element_text(face = "bold", size = 14, hjust = 0.5)
     )
-  ) &
-  theme(legend.position = "bottom")
+  )
+
+# Combine panels + legend with cowplot
+final_plot <- cowplot::plot_grid(
+  panels,
+  shared_legend,
+  ncol = 1,
+  rel_heights = c(15, 1)
+)
 
 final_plot
 

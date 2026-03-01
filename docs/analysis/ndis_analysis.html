@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Tina Lasisi | Virum Ranka">
-<meta name="dcterms.date" content="2026-02-01">
+<meta name="dcterms.date" content="2026-02-28">
 
 <title>NDIS Data Pipeline – PODFRIDGE-Databases</title>
 <style>
@@ -232,7 +232,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">February 1, 2026</p>
+      <p class="date">February 28, 2026</p>
     </div>
   </div>
   
@@ -887,29 +887,46 @@ Jurisdictions (54):</code></pre>
 <span id="cb31-51"><a href="#cb31-51" aria-hidden="true" tabindex="-1"></a>outlier_df_c <span class="op">=</span> gaps_c[gaps_c[<span class="st">"gap_days"</span>] <span class="op">&gt;</span> gap_threshold_c].copy()</span>
 <span id="cb31-52"><a href="#cb31-52" aria-hidden="true" tabindex="-1"></a>top_outliers_c <span class="op">=</span> outlier_df_c.nlargest(<span class="dv">5</span>, <span class="st">"gap_days"</span>)[[<span class="st">"jurisdiction"</span>, <span class="st">"gap_days"</span>, <span class="st">"capture_datetime"</span>]]</span>
 <span id="cb31-53"><a href="#cb31-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-54"><a href="#cb31-54" aria-hidden="true" tabindex="-1"></a>ax_c.hist(all_gap_vals_c, bins<span class="op">=</span><span class="dv">50</span>, color<span class="op">=</span><span class="st">"#4C78A8"</span>, alpha<span class="op">=</span><span class="fl">0.8</span>, edgecolor<span class="op">=</span><span class="st">"white"</span>)</span>
-<span id="cb31-55"><a href="#cb31-55" aria-hidden="true" tabindex="-1"></a>ax_c.axvline(min_gap_c, color<span class="op">=</span><span class="st">"#2ca02c"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">"--"</span>, label<span class="op">=</span><span class="ss">f"Min: </span><span class="sc">{</span>min_gap_c<span class="sc">:.0f}</span><span class="ss">d"</span>)</span>
-<span id="cb31-56"><a href="#cb31-56" aria-hidden="true" tabindex="-1"></a>ax_c.axvline(max_gap_c, color<span class="op">=</span><span class="st">"#d62728"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">"--"</span>, label<span class="op">=</span><span class="ss">f"Max: </span><span class="sc">{</span>max_gap_c<span class="sc">:.0f}</span><span class="ss">d"</span>)</span>
-<span id="cb31-57"><a href="#cb31-57" aria-hidden="true" tabindex="-1"></a>ax_c.axvline(mean_gap_c, color<span class="op">=</span><span class="st">"#ff7f0e"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">"-"</span>, label<span class="op">=</span><span class="ss">f"Mean: </span><span class="sc">{</span>mean_gap_c<span class="sc">:.1f}</span><span class="ss">d"</span>)</span>
-<span id="cb31-58"><a href="#cb31-58" aria-hidden="true" tabindex="-1"></a>ax_c.axvline(median_gap_c, color<span class="op">=</span><span class="st">"#9467bd"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">"-"</span>, label<span class="op">=</span><span class="ss">f"Median: </span><span class="sc">{</span>median_gap_c<span class="sc">:.1f}</span><span class="ss">d"</span>)</span>
-<span id="cb31-59"><a href="#cb31-59" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-60"><a href="#cb31-60" aria-hidden="true" tabindex="-1"></a><span class="co"># Annotate top outliers</span></span>
-<span id="cb31-61"><a href="#cb31-61" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (_, row) <span class="kw">in</span> <span class="bu">enumerate</span>(top_outliers_c.iterrows()):</span>
-<span id="cb31-62"><a href="#cb31-62" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> i <span class="op">&lt;</span> <span class="dv">3</span>:  <span class="co"># Label top 3 outliers</span></span>
-<span id="cb31-63"><a href="#cb31-63" aria-hidden="true" tabindex="-1"></a>        ax_c.annotate(</span>
-<span id="cb31-64"><a href="#cb31-64" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"</span><span class="sc">{</span>row[<span class="st">'jurisdiction'</span>]<span class="sc">}</span><span class="ch">\n</span><span class="ss">(</span><span class="sc">{</span>row[<span class="st">'gap_days'</span>]<span class="sc">:.0f}</span><span class="ss">d)"</span>,</span>
-<span id="cb31-65"><a href="#cb31-65" aria-hidden="true" tabindex="-1"></a>            xy<span class="op">=</span>(row[<span class="st">'gap_days'</span>], <span class="dv">0</span>),</span>
-<span id="cb31-66"><a href="#cb31-66" aria-hidden="true" tabindex="-1"></a>            xytext<span class="op">=</span>(row[<span class="st">'gap_days'</span>] <span class="op">-</span> <span class="dv">200</span>, <span class="dv">5000</span> <span class="op">+</span> i <span class="op">*</span> <span class="dv">3000</span>),</span>
-<span id="cb31-67"><a href="#cb31-67" aria-hidden="true" tabindex="-1"></a>            fontsize<span class="op">=</span><span class="dv">8</span>,</span>
-<span id="cb31-68"><a href="#cb31-68" aria-hidden="true" tabindex="-1"></a>            ha<span class="op">=</span><span class="st">'center'</span>,</span>
-<span id="cb31-69"><a href="#cb31-69" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'#d62728'</span>, lw<span class="op">=</span><span class="fl">0.8</span>),</span>
-<span id="cb31-70"><a href="#cb31-70" aria-hidden="true" tabindex="-1"></a>            color<span class="op">=</span><span class="st">'#d62728'</span></span>
-<span id="cb31-71"><a href="#cb31-71" aria-hidden="true" tabindex="-1"></a>        )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb31-54"><a href="#cb31-54" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib.ticker <span class="im">import</span> FuncFormatter</span>
+<span id="cb31-55"><a href="#cb31-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-56"><a href="#cb31-56" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _int_formatter(x, pos):</span>
+<span id="cb31-57"><a href="#cb31-57" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Format log-scale ticks as plain integers (no scientific notation)."""</span></span>
+<span id="cb31-58"><a href="#cb31-58" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> x <span class="op">&gt;=</span> <span class="dv">1</span>:</span>
+<span id="cb31-59"><a href="#cb31-59" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="ss">f"</span><span class="sc">{</span><span class="bu">int</span>(x)<span class="sc">:,}</span><span class="ss">"</span></span>
+<span id="cb31-60"><a href="#cb31-60" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="st">""</span></span>
+<span id="cb31-61"><a href="#cb31-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-62"><a href="#cb31-62" aria-hidden="true" tabindex="-1"></a>ax_c.hist(all_gap_vals_c, bins<span class="op">=</span><span class="dv">50</span>, color<span class="op">=</span><span class="st">"#4C78A8"</span>, alpha<span class="op">=</span><span class="fl">0.8</span>, edgecolor<span class="op">=</span><span class="st">"white"</span>)</span>
+<span id="cb31-63"><a href="#cb31-63" aria-hidden="true" tabindex="-1"></a>ax_c.axvline(min_gap_c, color<span class="op">=</span><span class="st">"#2ca02c"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">"--"</span>, label<span class="op">=</span><span class="ss">f"Min: </span><span class="sc">{</span>min_gap_c<span class="sc">:.0f}</span><span class="ss">d"</span>)</span>
+<span id="cb31-64"><a href="#cb31-64" aria-hidden="true" tabindex="-1"></a>ax_c.axvline(max_gap_c, color<span class="op">=</span><span class="st">"#d62728"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">"--"</span>, label<span class="op">=</span><span class="ss">f"Max: </span><span class="sc">{</span>max_gap_c<span class="sc">:.0f}</span><span class="ss">d"</span>)</span>
+<span id="cb31-65"><a href="#cb31-65" aria-hidden="true" tabindex="-1"></a>ax_c.axvline(mean_gap_c, color<span class="op">=</span><span class="st">"#ff7f0e"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">"-"</span>, label<span class="op">=</span><span class="ss">f"Mean: </span><span class="sc">{</span>mean_gap_c<span class="sc">:.1f}</span><span class="ss">d"</span>)</span>
+<span id="cb31-66"><a href="#cb31-66" aria-hidden="true" tabindex="-1"></a>ax_c.axvline(median_gap_c, color<span class="op">=</span><span class="st">"#9467bd"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">"-"</span>, label<span class="op">=</span><span class="ss">f"Median: </span><span class="sc">{</span>median_gap_c<span class="sc">:.1f}</span><span class="ss">d"</span>)</span>
+<span id="cb31-67"><a href="#cb31-67" aria-hidden="true" tabindex="-1"></a>ax_c.set_yscale(<span class="st">"log"</span>)</span>
+<span id="cb31-68"><a href="#cb31-68" aria-hidden="true" tabindex="-1"></a>ax_c.yaxis.set_major_formatter(FuncFormatter(_int_formatter))</span>
+<span id="cb31-69"><a href="#cb31-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-70"><a href="#cb31-70" aria-hidden="true" tabindex="-1"></a><span class="co"># Annotate top outliers with custom offsets to avoid overlap</span></span>
+<span id="cb31-71"><a href="#cb31-71" aria-hidden="true" tabindex="-1"></a><span class="co"># Offsets: (dx from data point, y position on log scale)</span></span>
+<span id="cb31-72"><a href="#cb31-72" aria-hidden="true" tabindex="-1"></a>label_offsets <span class="op">=</span> [</span>
+<span id="cb31-73"><a href="#cb31-73" aria-hidden="true" tabindex="-1"></a>    (<span class="op">-</span><span class="dv">300</span>, <span class="dv">300</span>),    <span class="co"># Puerto Rico (2528d) — label left of point</span></span>
+<span id="cb31-74"><a href="#cb31-74" aria-hidden="true" tabindex="-1"></a>    ( <span class="dv">400</span>, <span class="dv">1000</span>),   <span class="co"># Oregon (483d) — label right to avoid Kansas overlap</span></span>
+<span id="cb31-75"><a href="#cb31-75" aria-hidden="true" tabindex="-1"></a>    (<span class="op">-</span><span class="dv">250</span>, <span class="dv">3000</span>),   <span class="co"># Kansas (431d) — label left</span></span>
+<span id="cb31-76"><a href="#cb31-76" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb31-77"><a href="#cb31-77" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, (_, row) <span class="kw">in</span> <span class="bu">enumerate</span>(top_outliers_c.iterrows()):</span>
+<span id="cb31-78"><a href="#cb31-78" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> i <span class="op">&lt;</span> <span class="dv">3</span>:</span>
+<span id="cb31-79"><a href="#cb31-79" aria-hidden="true" tabindex="-1"></a>        dx, ty <span class="op">=</span> label_offsets[i]</span>
+<span id="cb31-80"><a href="#cb31-80" aria-hidden="true" tabindex="-1"></a>        ax_c.annotate(</span>
+<span id="cb31-81"><a href="#cb31-81" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"</span><span class="sc">{</span>row[<span class="st">'jurisdiction'</span>]<span class="sc">}</span><span class="ch">\n</span><span class="ss">(</span><span class="sc">{</span>row[<span class="st">'gap_days'</span>]<span class="sc">:.0f}</span><span class="ss">d)"</span>,</span>
+<span id="cb31-82"><a href="#cb31-82" aria-hidden="true" tabindex="-1"></a>            xy<span class="op">=</span>(row[<span class="st">'gap_days'</span>], <span class="dv">1</span>),</span>
+<span id="cb31-83"><a href="#cb31-83" aria-hidden="true" tabindex="-1"></a>            xytext<span class="op">=</span>(row[<span class="st">'gap_days'</span>] <span class="op">+</span> dx, ty),</span>
+<span id="cb31-84"><a href="#cb31-84" aria-hidden="true" tabindex="-1"></a>            fontsize<span class="op">=</span><span class="dv">8</span>,</span>
+<span id="cb31-85"><a href="#cb31-85" aria-hidden="true" tabindex="-1"></a>            ha<span class="op">=</span><span class="st">'center'</span>,</span>
+<span id="cb31-86"><a href="#cb31-86" aria-hidden="true" tabindex="-1"></a>            arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-&gt;'</span>, color<span class="op">=</span><span class="st">'#d62728'</span>, lw<span class="op">=</span><span class="fl">0.8</span>),</span>
+<span id="cb31-87"><a href="#cb31-87" aria-hidden="true" tabindex="-1"></a>            color<span class="op">=</span><span class="st">'#d62728'</span></span>
+<span id="cb31-88"><a href="#cb31-88" aria-hidden="true" tabindex="-1"></a>        )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>Text(2328.0, 5000, 'Puerto Rico\n(2528d)')
-Text(283.0, 8000, 'Oregon\n(483d)')
-Text(231.0, 11000, 'Kansas\n(431d)')</code></pre>
+<pre><code>Text(2228.0, 300, 'Puerto Rico\n(2528d)')
+Text(883.0, 1000, 'Oregon\n(483d)')
+Text(181.0, 3000, 'Kansas\n(431d)')</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show time gaps visualization code</summary>
@@ -927,17 +944,17 @@ Text(231.0, 11000, 'Kansas\n(431d)')</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show time gaps visualization code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>ax_c.set_ylabel(<span class="st">"Count"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>ax_c.set_ylabel(<span class="st">"Count (log scale)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>Text(0, 0.5, 'Count')</code></pre>
+<pre><code>Text(0, 0.5, 'Count (log scale)')</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show time gaps visualization code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>ax_c.legend(fontsize<span class="op">=</span><span class="dv">8</span>, loc<span class="op">=</span><span class="st">'upper right'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>&lt;matplotlib.legend.Legend object at 0x10d496e40&gt;</code></pre>
+<pre><code>&lt;matplotlib.legend.Legend object at 0x1211c3230&gt;</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show time gaps visualization code</summary>
@@ -972,32 +989,34 @@ Text(231.0, 11000, 'Kansas\n(431d)')</code></pre>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>ax_d.axvline(filtered_gaps_d.<span class="bu">min</span>(), color<span class="op">=</span><span class="st">"#2ca02c"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">"--"</span>, label<span class="op">=</span><span class="ss">f"Min: </span><span class="sc">{</span>filtered_gaps_d<span class="sc">.</span><span class="bu">min</span>()<span class="sc">:.0f}</span><span class="ss">d"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>&lt;matplotlib.lines.Line2D object at 0x10d611010&gt;</code></pre>
+<pre><code>&lt;matplotlib.lines.Line2D object at 0x121339400&gt;</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show time gaps visualization code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>ax_d.axvline(filtered_gaps_d.<span class="bu">max</span>(), color<span class="op">=</span><span class="st">"#d62728"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">"--"</span>, label<span class="op">=</span><span class="ss">f"Max: </span><span class="sc">{</span>filtered_gaps_d<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.0f}</span><span class="ss">d"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>&lt;matplotlib.lines.Line2D object at 0x10d6112b0&gt;</code></pre>
+<pre><code>&lt;matplotlib.lines.Line2D object at 0x1213396a0&gt;</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show time gaps visualization code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>ax_d.axvline(filtered_mean_d, color<span class="op">=</span><span class="st">"#ff7f0e"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">"-"</span>, label<span class="op">=</span><span class="ss">f"Mean: </span><span class="sc">{</span>filtered_mean_d<span class="sc">:.1f}</span><span class="ss">d"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>&lt;matplotlib.lines.Line2D object at 0x10d611400&gt;</code></pre>
+<pre><code>&lt;matplotlib.lines.Line2D object at 0x1213397f0&gt;</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show time gaps visualization code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>ax_d.axvline(filtered_median_d, color<span class="op">=</span><span class="st">"#9467bd"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">"-"</span>, label<span class="op">=</span><span class="ss">f"Median: </span><span class="sc">{</span>filtered_median_d<span class="sc">:.1f}</span><span class="ss">d"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>&lt;matplotlib.lines.Line2D object at 0x10d611550&gt;</code></pre>
+<pre><code>&lt;matplotlib.lines.Line2D object at 0x121339940&gt;</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show time gaps visualization code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>ax_d.set_title(<span class="ss">f"(d) Gap Distribution: WITHOUT Outliers (≤</span><span class="sc">{</span>gap_threshold_d<span class="sc">}</span><span class="ss">d)"</span>, fontsize<span class="op">=</span><span class="dv">11</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>, loc<span class="op">=</span><span class="st">'left'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>ax_d.set_yscale(<span class="st">"log"</span>)</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>ax_d.yaxis.set_major_formatter(FuncFormatter(_int_formatter))</span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>ax_d.set_title(<span class="ss">f"(d) Gap Distribution: WITHOUT Outliers (≤</span><span class="sc">{</span>gap_threshold_d<span class="sc">}</span><span class="ss">d)"</span>, fontsize<span class="op">=</span><span class="dv">11</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>, loc<span class="op">=</span><span class="st">'left'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Text(0.0, 1.0, '(d) Gap Distribution: WITHOUT Outliers (≤100d)')</code></pre>
@@ -1011,17 +1030,17 @@ Text(231.0, 11000, 'Kansas\n(431d)')</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show time gaps visualization code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>ax_d.set_ylabel(<span class="st">"Count"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>ax_d.set_ylabel(<span class="st">"Count (log scale)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>Text(0, 0.5, 'Count')</code></pre>
+<pre><code>Text(0, 0.5, 'Count (log scale)')</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show time gaps visualization code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>ax_d.legend(fontsize<span class="op">=</span><span class="dv">8</span>, loc<span class="op">=</span><span class="st">'upper right'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>&lt;matplotlib.legend.Legend object at 0x10d6116a0&gt;</code></pre>
+<pre><code>&lt;matplotlib.legend.Legend object at 0x1211c2120&gt;</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show time gaps visualization code</summary>
@@ -4279,126 +4298,136 @@ Top 10 jurisdictions by anomaly count:</code></pre>
 <summary>Show anomaly distribution figure code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb165"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb165-1"><a href="#cb165-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
 <span id="cb165-2"><a href="#cb165-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-3"><a href="#cb165-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Use viridis-inspired colors for flag types (matching the metric color scheme)</span></span>
-<span id="cb165-4"><a href="#cb165-4" aria-hidden="true" tabindex="-1"></a>flag_colors <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb165-5"><a href="#cb165-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"decimal_spike_dip"</span> <span class="ot">=</span> <span class="st">"#440154"</span>,        <span class="co"># Deep purple (viridis)</span></span>
-<span id="cb165-6"><a href="#cb165-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"spike_dip"</span> <span class="ot">=</span> <span class="st">"#31688e"</span>,                 <span class="co"># Blue (viridis)</span></span>
-<span id="cb165-7"><a href="#cb165-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"ndis_labs_spike"</span> <span class="ot">=</span> <span class="st">"#35b779"</span>,           <span class="co"># Green (viridis)</span></span>
-<span id="cb165-8"><a href="#cb165-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"stale_exact_reappearance"</span> <span class="ot">=</span> <span class="st">"#fde725"</span>   <span class="co"># Yellow (viridis)</span></span>
-<span id="cb165-9"><a href="#cb165-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb165-10"><a href="#cb165-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-11"><a href="#cb165-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Flag type display labels</span></span>
-<span id="cb165-12"><a href="#cb165-12" aria-hidden="true" tabindex="-1"></a>flag_labels <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb165-13"><a href="#cb165-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"decimal_spike_dip"</span> <span class="ot">=</span> <span class="st">"Decimal Error"</span>,</span>
-<span id="cb165-14"><a href="#cb165-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"spike_dip"</span> <span class="ot">=</span> <span class="st">"Spike/Dip"</span>,</span>
-<span id="cb165-15"><a href="#cb165-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">"ndis_labs_spike"</span> <span class="ot">=</span> <span class="st">"Labs Spike"</span>,</span>
-<span id="cb165-16"><a href="#cb165-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"stale_exact_reappearance"</span> <span class="ot">=</span> <span class="st">"Stale Cache"</span></span>
-<span id="cb165-17"><a href="#cb165-17" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb165-18"><a href="#cb165-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-19"><a href="#cb165-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Get ALL jurisdictions alphabetically (for consistent x-axis across panels)</span></span>
-<span id="cb165-20"><a href="#cb165-20" aria-hidden="true" tabindex="-1"></a>all_jurisdictions <span class="ot">&lt;-</span> anomaly_log <span class="sc">%&gt;%</span></span>
-<span id="cb165-21"><a href="#cb165-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(jurisdiction) <span class="sc">%&gt;%</span></span>
-<span id="cb165-22"><a href="#cb165-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb165-23"><a href="#cb165-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sort</span>()</span>
-<span id="cb165-24"><a href="#cb165-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-25"><a href="#cb165-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Prepare data: count by metric, jurisdiction, and flag type</span></span>
-<span id="cb165-26"><a href="#cb165-26" aria-hidden="true" tabindex="-1"></a>anomaly_plot_data <span class="ot">&lt;-</span> anomaly_log <span class="sc">%&gt;%</span></span>
-<span id="cb165-27"><a href="#cb165-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(metric, jurisdiction, flag_type) <span class="sc">%&gt;%</span></span>
-<span id="cb165-28"><a href="#cb165-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">count =</span> <span class="fu">n</span>(), <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb165-29"><a href="#cb165-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb165-30"><a href="#cb165-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">metric =</span> <span class="fu">factor</span>(metric, <span class="at">levels =</span> metric_order),</span>
-<span id="cb165-31"><a href="#cb165-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_type =</span> <span class="fu">factor</span>(flag_type, <span class="at">levels =</span> <span class="fu">names</span>(flag_colors)),</span>
-<span id="cb165-32"><a href="#cb165-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">jurisdiction =</span> <span class="fu">factor</span>(jurisdiction, <span class="at">levels =</span> all_jurisdictions)</span>
-<span id="cb165-33"><a href="#cb165-33" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb165-34"><a href="#cb165-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-35"><a href="#cb165-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate global y-axis max (sum of all flag types per jurisdiction per metric)</span></span>
-<span id="cb165-36"><a href="#cb165-36" aria-hidden="true" tabindex="-1"></a>y_max_global <span class="ot">&lt;-</span> anomaly_plot_data <span class="sc">%&gt;%</span></span>
-<span id="cb165-37"><a href="#cb165-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(metric, jurisdiction) <span class="sc">%&gt;%</span></span>
-<span id="cb165-38"><a href="#cb165-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">total =</span> <span class="fu">sum</span>(count), <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb165-39"><a href="#cb165-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(total) <span class="sc">%&gt;%</span></span>
-<span id="cb165-40"><a href="#cb165-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">max</span>(<span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb165-41"><a href="#cb165-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-42"><a href="#cb165-42" aria-hidden="true" tabindex="-1"></a><span class="co"># Add 10% padding</span></span>
-<span id="cb165-43"><a href="#cb165-43" aria-hidden="true" tabindex="-1"></a>y_max_global <span class="ot">&lt;-</span> <span class="fu">ceiling</span>(y_max_global <span class="sc">*</span> <span class="fl">1.1</span>)</span>
-<span id="cb165-44"><a href="#cb165-44" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-45"><a href="#cb165-45" aria-hidden="true" tabindex="-1"></a><span class="co"># Common theme for panels (legend will be collected at bottom)</span></span>
-<span id="cb165-46"><a href="#cb165-46" aria-hidden="true" tabindex="-1"></a>theme_panel <span class="ot">&lt;-</span> <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">10</span>) <span class="sc">+</span></span>
-<span id="cb165-47"><a href="#cb165-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
-<span id="cb165-48"><a href="#cb165-48" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb165-49"><a href="#cb165-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.4</span>),</span>
-<span id="cb165-50"><a href="#cb165-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.4</span>),</span>
-<span id="cb165-51"><a href="#cb165-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">size =</span> <span class="dv">8</span>),</span>
-<span id="cb165-52"><a href="#cb165-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>, <span class="at">size =</span> <span class="dv">7</span>),</span>
-<span id="cb165-53"><a href="#cb165-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.x =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb165-54"><a href="#cb165-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>, <span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">margin =</span> <span class="fu">margin</span>(<span class="at">r =</span> <span class="dv">5</span>)),</span>
-<span id="cb165-55"><a href="#cb165-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"bottom"</span>,</span>
-<span id="cb165-56"><a href="#cb165-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">12</span>),</span>
-<span id="cb165-57"><a href="#cb165-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">11</span>),</span>
-<span id="cb165-58"><a href="#cb165-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.key.size =</span> <span class="fu">unit</span>(<span class="fl">0.6</span>, <span class="st">"cm"</span>),</span>
-<span id="cb165-59"><a href="#cb165-59" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">11</span>),</span>
-<span id="cb165-60"><a href="#cb165-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.margin =</span> <span class="fu">margin</span>(<span class="at">t =</span> <span class="dv">5</span>, <span class="at">r =</span> <span class="dv">5</span>, <span class="at">b =</span> <span class="dv">2</span>, <span class="at">l =</span> <span class="dv">5</span>)</span>
-<span id="cb165-61"><a href="#cb165-61" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb165-62"><a href="#cb165-62" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-63"><a href="#cb165-63" aria-hidden="true" tabindex="-1"></a><span class="co"># Create individual panels for each metric with consistent y-axis</span></span>
-<span id="cb165-64"><a href="#cb165-64" aria-hidden="true" tabindex="-1"></a>create_metric_panel <span class="ot">&lt;-</span> <span class="cf">function</span>(metric_name, panel_label, y_max) {</span>
-<span id="cb165-65"><a href="#cb165-65" aria-hidden="true" tabindex="-1"></a>  plot_data <span class="ot">&lt;-</span> anomaly_plot_data <span class="sc">%&gt;%</span></span>
-<span id="cb165-66"><a href="#cb165-66" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(metric <span class="sc">==</span> metric_name)</span>
-<span id="cb165-67"><a href="#cb165-67" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb165-68"><a href="#cb165-68" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(plot_data, <span class="fu">aes</span>(<span class="at">x =</span> jurisdiction, <span class="at">y =</span> count, <span class="at">fill =</span> flag_type)) <span class="sc">+</span></span>
-<span id="cb165-69"><a href="#cb165-69" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">position =</span> <span class="st">"stack"</span>, <span class="at">color =</span> <span class="st">"black"</span>,</span>
-<span id="cb165-70"><a href="#cb165-70" aria-hidden="true" tabindex="-1"></a>             <span class="at">linewidth =</span> <span class="fl">0.2</span>, <span class="at">width =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
-<span id="cb165-71"><a href="#cb165-71" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">name =</span> <span class="st">"Anomaly Type"</span>, <span class="at">values =</span> flag_colors, <span class="at">labels =</span> flag_labels,</span>
-<span id="cb165-72"><a href="#cb165-72" aria-hidden="true" tabindex="-1"></a>                      <span class="at">drop =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
-<span id="cb165-73"><a href="#cb165-73" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_discrete</span>(<span class="at">limits =</span> all_jurisdictions, <span class="at">drop =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
-<span id="cb165-74"><a href="#cb165-74" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, y_max), <span class="at">expand =</span> <span class="fu">expansion</span>(<span class="at">mult =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>))) <span class="sc">+</span></span>
-<span id="cb165-75"><a href="#cb165-75" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">paste0</span>(panel_label, <span class="st">" "</span>, metric_name), <span class="at">y =</span> <span class="st">"Count"</span>) <span class="sc">+</span></span>
-<span id="cb165-76"><a href="#cb165-76" aria-hidden="true" tabindex="-1"></a>    theme_panel <span class="sc">+</span></span>
-<span id="cb165-77"><a href="#cb165-77" aria-hidden="true" tabindex="-1"></a>    <span class="fu">guides</span>(<span class="at">fill =</span> <span class="fu">guide_legend</span>(<span class="at">nrow =</span> <span class="dv">1</span>))</span>
-<span id="cb165-78"><a href="#cb165-78" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb165-79"><a href="#cb165-79" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-80"><a href="#cb165-80" aria-hidden="true" tabindex="-1"></a><span class="co"># Create panels with consistent y-axis</span></span>
-<span id="cb165-81"><a href="#cb165-81" aria-hidden="true" tabindex="-1"></a>p_offender <span class="ot">&lt;-</span> <span class="fu">create_metric_panel</span>(<span class="st">"Offender Profiles"</span>, <span class="st">"(A)"</span>, y_max_global)</span>
-<span id="cb165-82"><a href="#cb165-82" aria-hidden="true" tabindex="-1"></a>p_forensic <span class="ot">&lt;-</span> <span class="fu">create_metric_panel</span>(<span class="st">"Forensic Profiles"</span>, <span class="st">"(B)"</span>, y_max_global)</span>
-<span id="cb165-83"><a href="#cb165-83" aria-hidden="true" tabindex="-1"></a>p_arrestee <span class="ot">&lt;-</span> <span class="fu">create_metric_panel</span>(<span class="st">"Arrestee Profiles"</span>, <span class="st">"(C)"</span>, y_max_global)</span>
-<span id="cb165-84"><a href="#cb165-84" aria-hidden="true" tabindex="-1"></a>p_investigations <span class="ot">&lt;-</span> <span class="fu">create_metric_panel</span>(<span class="st">"Investigations Aided"</span>, <span class="st">"(D)"</span>, y_max_global)</span>
-<span id="cb165-85"><a href="#cb165-85" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-86"><a href="#cb165-86" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine panels vertically with shared legend at bottom using patchwork</span></span>
-<span id="cb165-87"><a href="#cb165-87" aria-hidden="true" tabindex="-1"></a>final_plot <span class="ot">&lt;-</span> (p_offender <span class="sc">/</span> p_forensic <span class="sc">/</span> p_arrestee <span class="sc">/</span> p_investigations) <span class="sc">+</span></span>
-<span id="cb165-88"><a href="#cb165-88" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot_layout</span>(<span class="at">heights =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>), <span class="at">guides =</span> <span class="st">"collect"</span>) <span class="sc">+</span></span>
-<span id="cb165-89"><a href="#cb165-89" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot_annotation</span>(</span>
-<span id="cb165-90"><a href="#cb165-90" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Anomaly Distribution by Metric and Jurisdiction"</span>,</span>
-<span id="cb165-91"><a href="#cb165-91" aria-hidden="true" tabindex="-1"></a>    <span class="at">theme =</span> <span class="fu">theme</span>(</span>
-<span id="cb165-92"><a href="#cb165-92" aria-hidden="true" tabindex="-1"></a>      <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">14</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>)</span>
-<span id="cb165-93"><a href="#cb165-93" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb165-94"><a href="#cb165-94" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">&amp;</span></span>
-<span id="cb165-95"><a href="#cb165-95" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span>
-<span id="cb165-96"><a href="#cb165-96" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-97"><a href="#cb165-97" aria-hidden="true" tabindex="-1"></a>final_plot</span>
+<span id="cb165-3"><a href="#cb165-3" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Layout: panels by flag type, colors by metric type, free y-axes ---</span></span>
+<span id="cb165-4"><a href="#cb165-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-5"><a href="#cb165-5" aria-hidden="true" tabindex="-1"></a>flag_order <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"decimal_spike_dip"</span>, <span class="st">"spike_dip"</span>, <span class="st">"ndis_labs_spike"</span>,</span>
+<span id="cb165-6"><a href="#cb165-6" aria-hidden="true" tabindex="-1"></a>                <span class="st">"stale_exact_reappearance"</span>)</span>
+<span id="cb165-7"><a href="#cb165-7" aria-hidden="true" tabindex="-1"></a>flag_panel_labels <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb165-8"><a href="#cb165-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"decimal_spike_dip"</span> <span class="ot">=</span> <span class="st">"Decimal Error"</span>,</span>
+<span id="cb165-9"><a href="#cb165-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"spike_dip"</span> <span class="ot">=</span> <span class="st">"Spike/Dip"</span>,</span>
+<span id="cb165-10"><a href="#cb165-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"ndis_labs_spike"</span> <span class="ot">=</span> <span class="st">"Labs Spike"</span>,</span>
+<span id="cb165-11"><a href="#cb165-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"stale_exact_reappearance"</span> <span class="ot">=</span> <span class="st">"Stale Cache"</span></span>
+<span id="cb165-12"><a href="#cb165-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb165-13"><a href="#cb165-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-14"><a href="#cb165-14" aria-hidden="true" tabindex="-1"></a>metric_colors <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb165-15"><a href="#cb165-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Offender Profiles"</span> <span class="ot">=</span> <span class="st">"#440154"</span>,</span>
+<span id="cb165-16"><a href="#cb165-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Forensic Profiles"</span> <span class="ot">=</span> <span class="st">"#31688e"</span>,</span>
+<span id="cb165-17"><a href="#cb165-17" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Arrestee Profiles"</span> <span class="ot">=</span> <span class="st">"#21918c"</span>,</span>
+<span id="cb165-18"><a href="#cb165-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Investigations Aided"</span> <span class="ot">=</span> <span class="st">"#5ec962"</span>,</span>
+<span id="cb165-19"><a href="#cb165-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"NDIS Labs"</span> <span class="ot">=</span> <span class="st">"#fde725"</span></span>
+<span id="cb165-20"><a href="#cb165-20" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb165-21"><a href="#cb165-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-22"><a href="#cb165-22" aria-hidden="true" tabindex="-1"></a><span class="co"># All jurisdictions for consistent x-axis</span></span>
+<span id="cb165-23"><a href="#cb165-23" aria-hidden="true" tabindex="-1"></a>all_jurisdictions <span class="ot">&lt;-</span> anomaly_log <span class="sc">%&gt;%</span></span>
+<span id="cb165-24"><a href="#cb165-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(jurisdiction) <span class="sc">%&gt;%</span></span>
+<span id="cb165-25"><a href="#cb165-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb165-26"><a href="#cb165-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sort</span>()</span>
+<span id="cb165-27"><a href="#cb165-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-28"><a href="#cb165-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Prepare data: count by flag type, jurisdiction, and metric</span></span>
+<span id="cb165-29"><a href="#cb165-29" aria-hidden="true" tabindex="-1"></a>anomaly_plot_data <span class="ot">&lt;-</span> anomaly_log <span class="sc">%&gt;%</span></span>
+<span id="cb165-30"><a href="#cb165-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(flag_type, jurisdiction, metric) <span class="sc">%&gt;%</span></span>
+<span id="cb165-31"><a href="#cb165-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">count =</span> <span class="fu">n</span>(), <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb165-32"><a href="#cb165-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb165-33"><a href="#cb165-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">flag_type =</span> <span class="fu">factor</span>(flag_type, <span class="at">levels =</span> flag_order),</span>
+<span id="cb165-34"><a href="#cb165-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">metric =</span> <span class="fu">factor</span>(metric, <span class="at">levels =</span> <span class="fu">names</span>(metric_colors)),</span>
+<span id="cb165-35"><a href="#cb165-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">jurisdiction =</span> <span class="fu">factor</span>(jurisdiction, <span class="at">levels =</span> all_jurisdictions)</span>
+<span id="cb165-36"><a href="#cb165-36" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb165-37"><a href="#cb165-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-38"><a href="#cb165-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Common theme for panels (legend suppressed; one shared legend added below)</span></span>
+<span id="cb165-39"><a href="#cb165-39" aria-hidden="true" tabindex="-1"></a>theme_panel <span class="ot">&lt;-</span> <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">10</span>) <span class="sc">+</span></span>
+<span id="cb165-40"><a href="#cb165-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb165-41"><a href="#cb165-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb165-42"><a href="#cb165-42" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.4</span>),</span>
+<span id="cb165-43"><a href="#cb165-43" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.4</span>),</span>
+<span id="cb165-44"><a href="#cb165-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">size =</span> <span class="dv">8</span>),</span>
+<span id="cb165-45"><a href="#cb165-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>, <span class="at">size =</span> <span class="dv">6</span>),</span>
+<span id="cb165-46"><a href="#cb165-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.x =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb165-47"><a href="#cb165-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>, <span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">margin =</span> <span class="fu">margin</span>(<span class="at">r =</span> <span class="dv">5</span>)),</span>
+<span id="cb165-48"><a href="#cb165-48" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">11</span>),</span>
+<span id="cb165-49"><a href="#cb165-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.margin =</span> <span class="fu">margin</span>(<span class="at">t =</span> <span class="dv">5</span>, <span class="at">r =</span> <span class="dv">5</span>, <span class="at">b =</span> <span class="dv">2</span>, <span class="at">l =</span> <span class="dv">5</span>),</span>
+<span id="cb165-50"><a href="#cb165-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"none"</span></span>
+<span id="cb165-51"><a href="#cb165-51" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb165-52"><a href="#cb165-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-53"><a href="#cb165-53" aria-hidden="true" tabindex="-1"></a>shared_fill <span class="ot">&lt;-</span> <span class="fu">scale_fill_manual</span>(</span>
+<span id="cb165-54"><a href="#cb165-54" aria-hidden="true" tabindex="-1"></a>  <span class="at">name =</span> <span class="st">"Metric Type"</span>, <span class="at">values =</span> metric_colors, <span class="at">drop =</span> <span class="cn">FALSE</span></span>
+<span id="cb165-55"><a href="#cb165-55" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb165-56"><a href="#cb165-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-57"><a href="#cb165-57" aria-hidden="true" tabindex="-1"></a><span class="co"># Create individual panels for each flag type with free y-axis</span></span>
+<span id="cb165-58"><a href="#cb165-58" aria-hidden="true" tabindex="-1"></a>create_flag_panel <span class="ot">&lt;-</span> <span class="cf">function</span>(flag_name, panel_label) {</span>
+<span id="cb165-59"><a href="#cb165-59" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">&lt;-</span> anomaly_plot_data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(flag_type <span class="sc">==</span> flag_name)</span>
+<span id="cb165-60"><a href="#cb165-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(d, <span class="fu">aes</span>(<span class="at">x =</span> jurisdiction, <span class="at">y =</span> count, <span class="at">fill =</span> metric)) <span class="sc">+</span></span>
+<span id="cb165-61"><a href="#cb165-61" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">position =</span> <span class="st">"stack"</span>, <span class="at">color =</span> <span class="st">"black"</span>,</span>
+<span id="cb165-62"><a href="#cb165-62" aria-hidden="true" tabindex="-1"></a>             <span class="at">linewidth =</span> <span class="fl">0.2</span>, <span class="at">width =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb165-63"><a href="#cb165-63" aria-hidden="true" tabindex="-1"></a>    shared_fill <span class="sc">+</span></span>
+<span id="cb165-64"><a href="#cb165-64" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_discrete</span>(<span class="at">limits =</span> all_jurisdictions, <span class="at">drop =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb165-65"><a href="#cb165-65" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_y_continuous</span>(<span class="at">expand =</span> <span class="fu">expansion</span>(<span class="at">mult =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.1</span>))) <span class="sc">+</span></span>
+<span id="cb165-66"><a href="#cb165-66" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">paste0</span>(panel_label, <span class="st">" "</span>, flag_panel_labels[flag_name]), <span class="at">y =</span> <span class="st">"Count"</span>) <span class="sc">+</span></span>
+<span id="cb165-67"><a href="#cb165-67" aria-hidden="true" tabindex="-1"></a>    theme_panel</span>
+<span id="cb165-68"><a href="#cb165-68" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb165-69"><a href="#cb165-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-70"><a href="#cb165-70" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">create_flag_panel</span>(<span class="st">"decimal_spike_dip"</span>, <span class="st">"(A)"</span>)</span>
+<span id="cb165-71"><a href="#cb165-71" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="fu">create_flag_panel</span>(<span class="st">"spike_dip"</span>, <span class="st">"(B)"</span>)</span>
+<span id="cb165-72"><a href="#cb165-72" aria-hidden="true" tabindex="-1"></a>p3 <span class="ot">&lt;-</span> <span class="fu">create_flag_panel</span>(<span class="st">"ndis_labs_spike"</span>, <span class="st">"(C)"</span>)</span>
+<span id="cb165-73"><a href="#cb165-73" aria-hidden="true" tabindex="-1"></a>p4 <span class="ot">&lt;-</span> <span class="fu">create_flag_panel</span>(<span class="st">"stale_exact_reappearance"</span>, <span class="st">"(D)"</span>)</span>
+<span id="cb165-74"><a href="#cb165-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-75"><a href="#cb165-75" aria-hidden="true" tabindex="-1"></a><span class="co"># Build a standalone legend grob from a dummy plot</span></span>
+<span id="cb165-76"><a href="#cb165-76" aria-hidden="true" tabindex="-1"></a>legend_source <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(anomaly_plot_data, <span class="fu">aes</span>(<span class="at">x =</span> jurisdiction, <span class="at">y =</span> count, <span class="at">fill =</span> metric)) <span class="sc">+</span></span>
+<span id="cb165-77"><a href="#cb165-77" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>) <span class="sc">+</span></span>
+<span id="cb165-78"><a href="#cb165-78" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">name =</span> <span class="st">"Metric Type"</span>, <span class="at">values =</span> metric_colors, <span class="at">drop =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb165-79"><a href="#cb165-79" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">fill =</span> <span class="fu">guide_legend</span>(<span class="at">nrow =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb165-80"><a href="#cb165-80" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb165-81"><a href="#cb165-81" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"bottom"</span>,</span>
+<span id="cb165-82"><a href="#cb165-82" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">14</span>),</span>
+<span id="cb165-83"><a href="#cb165-83" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">13</span>),</span>
+<span id="cb165-84"><a href="#cb165-84" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.key.size =</span> <span class="fu">unit</span>(<span class="fl">0.8</span>, <span class="st">"cm"</span>),</span>
+<span id="cb165-85"><a href="#cb165-85" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.spacing.x =</span> <span class="fu">unit</span>(<span class="fl">0.5</span>, <span class="st">"cm"</span>)</span>
+<span id="cb165-86"><a href="#cb165-86" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb165-87"><a href="#cb165-87" aria-hidden="true" tabindex="-1"></a>shared_legend <span class="ot">&lt;-</span> cowplot<span class="sc">::</span><span class="fu">get_plot_component</span>(legend_source, <span class="st">"guide-box-bottom"</span>)</span>
+<span id="cb165-88"><a href="#cb165-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-89"><a href="#cb165-89" aria-hidden="true" tabindex="-1"></a><span class="co"># Stack panels with patchwork (free y-axes across panels)</span></span>
+<span id="cb165-90"><a href="#cb165-90" aria-hidden="true" tabindex="-1"></a>panels <span class="ot">&lt;-</span> (p1 <span class="sc">/</span> p2 <span class="sc">/</span> p3 <span class="sc">/</span> p4) <span class="sc">+</span></span>
+<span id="cb165-91"><a href="#cb165-91" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot_layout</span>(<span class="at">heights =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb165-92"><a href="#cb165-92" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot_annotation</span>(</span>
+<span id="cb165-93"><a href="#cb165-93" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Anomaly Distribution by Flag Type and Jurisdiction"</span>,</span>
+<span id="cb165-94"><a href="#cb165-94" aria-hidden="true" tabindex="-1"></a>    <span class="at">theme =</span> <span class="fu">theme</span>(</span>
+<span id="cb165-95"><a href="#cb165-95" aria-hidden="true" tabindex="-1"></a>      <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">14</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>)</span>
+<span id="cb165-96"><a href="#cb165-96" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb165-97"><a href="#cb165-97" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb165-98"><a href="#cb165-98" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-99"><a href="#cb165-99" aria-hidden="true" tabindex="-1"></a><span class="co"># Save figure</span></span>
-<span id="cb165-100"><a href="#cb165-100" aria-hidden="true" tabindex="-1"></a>fig_output_dir <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"output"</span>, <span class="st">"figures"</span>, <span class="st">"manuscript_figures"</span>)</span>
-<span id="cb165-101"><a href="#cb165-101" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(fig_output_dir, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb165-102"><a href="#cb165-102" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-103"><a href="#cb165-103" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
-<span id="cb165-104"><a href="#cb165-104" aria-hidden="true" tabindex="-1"></a>  <span class="at">filename =</span> <span class="fu">file.path</span>(fig_output_dir, <span class="st">"fig5_anomaly_distribution.pdf"</span>),</span>
-<span id="cb165-105"><a href="#cb165-105" aria-hidden="true" tabindex="-1"></a>  <span class="at">plot =</span> final_plot,</span>
-<span id="cb165-106"><a href="#cb165-106" aria-hidden="true" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">14</span>,</span>
-<span id="cb165-107"><a href="#cb165-107" aria-hidden="true" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">16</span>,</span>
-<span id="cb165-108"><a href="#cb165-108" aria-hidden="true" tabindex="-1"></a>  <span class="at">dpi =</span> <span class="dv">300</span>,</span>
-<span id="cb165-109"><a href="#cb165-109" aria-hidden="true" tabindex="-1"></a>  <span class="at">units =</span> <span class="st">"in"</span>,</span>
-<span id="cb165-110"><a href="#cb165-110" aria-hidden="true" tabindex="-1"></a>  <span class="at">device =</span> cairo_pdf</span>
-<span id="cb165-111"><a href="#cb165-111" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb165-99"><a href="#cb165-99" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine panels + legend with cowplot</span></span>
+<span id="cb165-100"><a href="#cb165-100" aria-hidden="true" tabindex="-1"></a>final_plot <span class="ot">&lt;-</span> cowplot<span class="sc">::</span><span class="fu">plot_grid</span>(</span>
+<span id="cb165-101"><a href="#cb165-101" aria-hidden="true" tabindex="-1"></a>  panels,</span>
+<span id="cb165-102"><a href="#cb165-102" aria-hidden="true" tabindex="-1"></a>  shared_legend,</span>
+<span id="cb165-103"><a href="#cb165-103" aria-hidden="true" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="dv">1</span>,</span>
+<span id="cb165-104"><a href="#cb165-104" aria-hidden="true" tabindex="-1"></a>  <span class="at">rel_heights =</span> <span class="fu">c</span>(<span class="dv">15</span>, <span class="dv">1</span>)</span>
+<span id="cb165-105"><a href="#cb165-105" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb165-106"><a href="#cb165-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-107"><a href="#cb165-107" aria-hidden="true" tabindex="-1"></a>final_plot</span>
+<span id="cb165-108"><a href="#cb165-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-109"><a href="#cb165-109" aria-hidden="true" tabindex="-1"></a><span class="co"># Save figure</span></span>
+<span id="cb165-110"><a href="#cb165-110" aria-hidden="true" tabindex="-1"></a>fig_output_dir <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"output"</span>, <span class="st">"figures"</span>, <span class="st">"manuscript_figures"</span>)</span>
+<span id="cb165-111"><a href="#cb165-111" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(fig_output_dir, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
 <span id="cb165-112"><a href="#cb165-112" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb165-113"><a href="#cb165-113" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
-<span id="cb165-114"><a href="#cb165-114" aria-hidden="true" tabindex="-1"></a>  <span class="at">filename =</span> <span class="fu">file.path</span>(fig_output_dir, <span class="st">"fig5_anomaly_distribution.png"</span>),</span>
+<span id="cb165-114"><a href="#cb165-114" aria-hidden="true" tabindex="-1"></a>  <span class="at">filename =</span> <span class="fu">file.path</span>(fig_output_dir, <span class="st">"fig5_anomaly_distribution.pdf"</span>),</span>
 <span id="cb165-115"><a href="#cb165-115" aria-hidden="true" tabindex="-1"></a>  <span class="at">plot =</span> final_plot,</span>
 <span id="cb165-116"><a href="#cb165-116" aria-hidden="true" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">14</span>,</span>
 <span id="cb165-117"><a href="#cb165-117" aria-hidden="true" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">16</span>,</span>
 <span id="cb165-118"><a href="#cb165-118" aria-hidden="true" tabindex="-1"></a>  <span class="at">dpi =</span> <span class="dv">300</span>,</span>
-<span id="cb165-119"><a href="#cb165-119" aria-hidden="true" tabindex="-1"></a>  <span class="at">units =</span> <span class="st">"in"</span></span>
-<span id="cb165-120"><a href="#cb165-120" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb165-121"><a href="#cb165-121" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb165-122"><a href="#cb165-122" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Saved figure to: %s</span><span class="sc">\n</span><span class="st">"</span>, fig_output_dir))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb165-119"><a href="#cb165-119" aria-hidden="true" tabindex="-1"></a>  <span class="at">units =</span> <span class="st">"in"</span>,</span>
+<span id="cb165-120"><a href="#cb165-120" aria-hidden="true" tabindex="-1"></a>  <span class="at">device =</span> cairo_pdf</span>
+<span id="cb165-121"><a href="#cb165-121" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb165-122"><a href="#cb165-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-123"><a href="#cb165-123" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
+<span id="cb165-124"><a href="#cb165-124" aria-hidden="true" tabindex="-1"></a>  <span class="at">filename =</span> <span class="fu">file.path</span>(fig_output_dir, <span class="st">"fig5_anomaly_distribution.png"</span>),</span>
+<span id="cb165-125"><a href="#cb165-125" aria-hidden="true" tabindex="-1"></a>  <span class="at">plot =</span> final_plot,</span>
+<span id="cb165-126"><a href="#cb165-126" aria-hidden="true" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">14</span>,</span>
+<span id="cb165-127"><a href="#cb165-127" aria-hidden="true" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">16</span>,</span>
+<span id="cb165-128"><a href="#cb165-128" aria-hidden="true" tabindex="-1"></a>  <span class="at">dpi =</span> <span class="dv">300</span>,</span>
+<span id="cb165-129"><a href="#cb165-129" aria-hidden="true" tabindex="-1"></a>  <span class="at">units =</span> <span class="st">"in"</span></span>
+<span id="cb165-130"><a href="#cb165-130" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb165-131"><a href="#cb165-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-132"><a href="#cb165-132" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Saved figure to: %s</span><span class="sc">\n</span><span class="st">"</span>, fig_output_dir))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>

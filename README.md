@@ -164,9 +164,9 @@ All final datasets are archived and publicly available on Zenodo:
 **Zenodo Repository:** [10.5281/zenodo.17215677](https://doi.org/10.5281/zenodo.17215677)
 
 The repository includes:
-- `NDIS_time_series.csv` - Monthly NDIS statistics (2001-2025)
+- `ndis_time_series.csv` - NDIS statistics in long format with data quality flags (2001-2025)
 - `SDIS_cross_section.csv` - State-level profiles and policies
-- `FOIA_Demographics.csv` - Demographic composition from FOIA responses (Murphy & Tong, 2020)
+- `foia_data_clean.csv` - Demographic composition from FOIA responses (Murphy & Tong, 2020)
 - `Annual_DNA_Collection.csv` - Annual collection rates (Murphy & Tong, 2020)
 - Raw HTML files, intermediate processing outputs, and complete documentation
 
@@ -174,4 +174,4 @@ The repository includes:
 Code: MIT License  
 Data: CC BY 4.0 (see Zenodo release; FOIA-derived data subject to original authors' permissions)
 
-Last update: November 09, 2025
+Last update: February 28, 2026

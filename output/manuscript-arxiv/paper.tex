@@ -7,19 +7,20 @@
 \usepackage[hidelinks]{hyperref}       % hyperlinks
 \usepackage{url}            % simple URL typesetting
 \usepackage{booktabs}       % professional-quality tables
+\usepackage{amsmath}        % math environments including \text
 \usepackage{amsfonts}       % blackboard math symbols
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 % \usepackage{microtype}      % microtypography
 \usepackage{cleveref}       % smart cross-referencing
 \usepackage{graphicx}
-\usepackage{natbib}
+\usepackage[numbers]{natbib}
 \usepackage{doi}
 \usepackage[labelfont=bf]{caption}
 
 
 \title{National and state-level datasets of United States forensic DNA databases 2001--2025}
 
-% Comment to use multiple affiliations variant of author block 
+% Comment to use multiple affiliations variant of author block
 %\uniqueAffiliationtrue
 
 % Multiple affiliations variant of author block
@@ -27,10 +28,13 @@
 \renewcommand\Authfont{\bfseries}
 \setlength{\affilsep}{0em}
 
-\newbox{\orcid}\sbox{\orcid}{\includegraphics[scale=0.06]{orcid.pdf}} 
+\newbox{\orcid}\sbox{\orcid}{\includegraphics[scale=0.06]{orcid.pdf}}
 
 \author[1]{%
   \href{https://orcid.org/0000-0002-1942-786X}{\usebox{\orcid}\hspace{1mm}Yemko Pryor}%
+}
+\author[1]{%
+  \href{https://orcid.org/0009-0005-5151-5068}{\usebox{\orcid}\hspace{1mm}Virum Ranka}%
 }
 \author[2]{%
   \href{https://orcid.org/0000-0002-6728-4373}{\usebox{\orcid}\hspace{1mm}Jo\~ao Pedro Donadio}%
@@ -42,7 +46,7 @@
   \href{https://orcid.org/0009-0003-0667-4946}{\usebox{\orcid}\hspace{1mm}Jenna Wilson}%
 }
 \author[1,4,*]{%
-  \href{https://orcid.org/0000-0002-7546-6724}{\usebox{\orcid}\hspace{1mm}Tina Lasisi}%
+  \mbox{\href{https://orcid.org/0000-0002-7546-6724}{\usebox{\orcid}\hspace{1mm}Tina Lasisi}}%
 }
 
 \affil[1]{Department of Anthropology, University of Michigan, Ann Arbor, USA}
@@ -61,7 +65,7 @@
 \hypersetup{
 pdftitle={National and state-level datasets of United States forensic DNA databases 2001-2025},
 pdfsubject={forensic genetics, CODIS, DNA databases, criminal justice},
-pdfauthor={Pryor, Y., Donadio, J. P., Muller, S.C., Wilson, J., Lasisi, T.},
+pdfauthor={Pryor, Y., Ranka, V., Donadio, J. P., Muller, S.C., Wilson, J., Lasisi, T.},
 pdfkeywords={forensic DNA databases, CODIS, NDIS, SDIS, United States, criminal justice},
 }
 
@@ -69,7 +73,7 @@ pdfkeywords={forensic DNA databases, CODIS, NDIS, SDIS, United States, criminal 
 \maketitle
 
 \begin{abstract}
-Forensic DNA databases in the United States have expanded substantially over the past two decades. However, comprehensive, harmonized data describing database structure and composition remain limited. This dataset series documents forensic DNA infrastructure across national and state levels from 2001 to 2025. It includes a reconstructed time series of monthly National DNA Index System (NDIS) statistics from FBI archives, capturing counts of offender, arrestee, and forensic profiles, participating laboratory totals, and investigations aided. A complementary dataset compiles publicly available state-level statistics and policy metadata on arrestee collection laws, familial search practices, and DNA collection statutes across all 50 states. A third dataset provides standardized demographic and annual collection data obtained through previously published public records requests, including sex and gender composition where reported. Together, these resources provide a foundation for studying the historical development of forensic DNA systems in the U.S., enabling longitudinal and cross-sectional analyses of database growth, policy variation, and reporting practices across jurisdictions.
+Forensic DNA databases in the United States have expanded substantially over the past two decades. However, comprehensive, harmonized data describing database structure and composition remain limited. This dataset series documents forensic DNA infrastructure across national and state levels from 2001 to 2025. It includes a reconstructed time series of monthly National DNA Index System (NDIS) statistics from FBI archives, capturing counts of offender, arrestee, and forensic profiles, participating laboratory totals, and investigations aided. A complementary dataset compiles publicly available state-level statistics and policy metadata on arrestee collection laws, familial search practices, and DNA collection statutes across all 50 states. A third dataset provides standardized demographic and annual collection data obtained through previously published public records requests, including sex and racial composition where reported. Together, these resources provide a foundation for studying the historical development of forensic DNA systems in the U.S., enabling longitudinal and cross-sectional analyses of database growth, policy variation, and reporting practices across jurisdictions.
 \end{abstract}
 
 % keywords can be removed if not needed
@@ -81,9 +85,9 @@ The Combined DNA Index System (CODIS) is a software platform originated by the F
 
 The FBI has published monthly NDIS statistics since the early 2000s, including counts of offender, arrestee, and forensic profiles, along with cumulative investigations aided \cite{Unknown2022-qe}. These statistics are commonly referenced in the literature, with studies reporting point-in-time totals based on the FBI's website at the time of writing. For example, counts from June 2011 \cite{Ge2012-if}, January 2012 \cite{Ge2012-ve}, May 2013 \cite{Ge2014-rl}, October 2021 \cite{Wickenheiser2022-tb}, November 2022 \cite{Link2023-dm}, and February 2024 \cite{Greenwald2024-sg}. However, these reports are released only as individual snapshots and are not preserved in a longitudinal, machine-readable format, limiting their use for tracking changes over time.
 
-Data availability is inconsistent at the state level. Some states publish total SDIS counts or break down profiles by category, while others provide general department summaries or statutory references that are not specific to SDIS. Many do not publish SDIS-level statistics easily available to the public. Demographic composition is even more sparsely documented. The only known compilation of sex and gender composition data comes from a 2020 publication by Murphy and Tong \cite{Murphy2020-pc}, who submitted Freedom of Information Act (FOIA) requests to all 50 states and received responses from seven. Their publication includes summary tables describing the demographic composition of state DNA databases and annual DNA profile collection counts. In this work, we digitize and standardize those materials to enable integration with other public data to support structured reuse.
+Data availability is inconsistent at the state level. Some states publish total SDIS counts or break down profiles by category, while others provide general department summaries or statutory references that are not specific to SDIS. Many do not publish SDIS-level statistics easily available to the public. Demographic composition is even more sparsely documented. The only known compilation of sex and racial composition data comes from a 2020 publication by Murphy and Tong \cite{Murphy2020-pc}, who submitted Freedom of Information Act (FOIA) requests to all 50 states and received responses from seven. Their publication includes summary tables describing the demographic composition of state DNA databases and annual DNA profile collection counts. In this work, we digitise and standardise those materials to enable integration with other public data to support structured reuse.
 
-This Data Descriptor introduces three datasets that document the structure, scale, and composition of U.S. forensic DNA databases. The first is a national-level NDIS time series (2001--2025) reconstructed from archived FBI webpages, including monthly counts by index and jurisdiction, participating laboratory counts, and investigations aided. The second is a current cross-sectional SDIS dataset that compiles reported totals and profile-type breakdowns if applicable, with accompanying metadata on arrestee collection, familial search authorization, and relevant state statutes for all 50 states. The third dataset provides structured versions of two resources derived from Murphy and Tong (2020): 1) sex and gender composition by state, year, and index type, and 2) annual state-level profile collection counts.
+This Data Descriptor introduces three datasets that document the structure, scale, and composition of U.S. forensic DNA databases. The first is a national-level NDIS time series (2001--2025) reconstructed from archived FBI webpages, including monthly counts by index and jurisdiction, participating laboratory counts, and investigations aided. The second is a current cross-sectional SDIS dataset that compiles reported totals and profile-type breakdowns if applicable, with accompanying metadata on arrestee collection, familial search authorization, and relevant state statutes for all 50 states. The third dataset provides structured versions of two resources derived from Murphy and Tong (2020): 1) sex and racial composition by state, year, and index type, and 2) annual state-level profile collection counts.
 
 These datasets are intended to support research on the scale and governance of forensic DNA infrastructure in the United States, including cross-state comparison, time series modeling, and evaluation of demographic composition. The longitudinal NDIS dataset also enables investigation of how operational or policy shifts---such as the expansion of the CODIS core STR set to 20 loci in 2017 \cite{Hares2015-ep}---may have influenced profile accumulation. All datasets are versioned, documented, and released with processing code to facilitate transparent reuse.
 
@@ -91,7 +95,7 @@ These datasets are intended to support research on the scale and governance of f
 
 \subsection*{Data Collection Strategy}
 
-We developed a three-pronged approach to capture different dimensions of the U.S. forensic DNA database landscape. Federal statistics were reconstructed from archived FBI websites, state policies were compiled through targeted web searches of current legislative sources, and demographic data were obtained through Murphy \& Tong's supplementary data documenting FOIA responses on the demographic composition of seven states who responded to their requests. 
+We developed a three-pronged approach to capture different dimensions of the U.S. forensic DNA database landscape. Federal statistics were reconstructed from archived FBI websites, state policies were compiled through targeted web searches of current legislative sources, and demographic data were obtained through Murphy \& Tong's supplementary data documenting FOIA responses on the demographic composition of seven states who responded to their requests.
 
 \subsection*{Federal Statistics Extraction}
 
@@ -113,7 +117,7 @@ The raw HTML data contained 169 unique text strings representing 54 actual juris
 \begin{figure}[ht!]
 \centering
 \includegraphics[width=\textwidth]{fig2_methodology.pdf}
-\caption{\textbf{Parsing logic for NDIS statistics scraping.} A diagram depicting the step-by-step approach used to scrape the Wayback Machine and consolidate FBI NDIS statistics using era-specific parsers, allowing for a validated cleaned dataset of complied NDIS time series data.}
+\caption{\textbf{Parsing logic for NDIS statistics scraping.} A diagram depicting the step-by-step approach used to scrape the Wayback Machine and consolidate FBI NDIS statistics using era-specific parsers, allowing for a validated cleaned dataset of compiled NDIS time series data.}
 \label{fig:parsing_logic}
 \end{figure}
 
@@ -121,13 +125,13 @@ The raw HTML data contained 169 unique text strings representing 54 actual juris
 \subsection*{State DNA Database Counts and Policy Compilation}
 Targeted web searches were performed to find available information on state-level DNA databases. Data sources were identified and reviewed using official state government websites and annual reports. Searches were conducted by entering terms such as ``SDIS,'' ``CODIS,'' ``Forensics'', or ``DNA'' into state website search bars, or by using general browser queries such as ``[state name] AND DNA Database,'' ``[state name] AND annual review,'' or ``[state name] Police AND DNA Database.'' Available information from state government webpages were codified to summarize the number of arrestees, offenders, forensic profiles, collection statutes and familial search practices per state. The most recent publicly available state-sourced database reports span from 2013 to 2025, depending on the state. Only 29 of the 50 states reported raw arrestee DNA totals. This represents the best available recent snapshot of state-level DNA database statistics. Policies regarding arrestee DNA collection were coded as binary variables (yes/no) when the statutory language was explicit (Figure 3A). Familial search policies were coded as "permitted" or "prohibited" when definitively stated or as ``unspecified'' when the statutes were silent or ambiguous on these particular provisions(Figure 3B).
 
-\subsection*{Demographic FOIA Data Extraction and Standardization}
+\subsection*{Demographic FOIA Data Extraction and Standardisation}
 
 We incorporated data from two appendices originally referenced in Murphy \& Tong (2020) that were not accessible directly with the original article. At our request, the authors provided the original files, which include the scanned FOIA response letters from state agencies reporting demographic breakdowns of their forensic DNA databases. Additionally, we provide an appendix with tables in which Murphy \& Tong had already performed calculations combining state-level collection data, Census demographics, and estimated rates of annual DNA collection by race.
 
 To make these appendices accessible and reusable, we transcribed all documents into machine-readable CSVs. Analysis of FOIA responses revealed that state documents used "sex" and "gender" interchangeably. For data harmonization, we standardized on "sex" as the primary term, given that the presence of the Y sex chromosome is a key determinant of DNA profiling options. For the first appendix, this primarily involved converting the demographic tables from scanned PDFs into structured data while retaining the categories used by the original agencies. This data was available only for the seven states that responded to Murphy \& Tong's FOIA requests and the letters all date from 2018. For the second appendix, we treated Murphy \& Tong's own calculated estimates as data values, preserving them alongside the raw counts they reported. This data is also based on 2018. This ensured that our release captures not only the state-provided figures but also the derived metrics that underpinned the analysis in their original article.
 
-Together, these appendices provide two complementary resources: 1) agency-reported demographic counts from seven states and 2) Murphy \& Tong's standardized estimates of annual DNA collection rates by race across all fifty states. We preserved the structure and terminology of the original materials while adding clear provenance fields so users can distinguish between reported values and author-calculated estimates.
+Together, these appendices provide two complementary resources: 1) agency-reported demographic counts from seven states and 2) Murphy \& Tong's standardized estimates of annual DNA collection rates by race across all fifty states. We preserved the structure and terminology of the original materials while adding clear provenance fields so users can distinguish between reported values and author-calculated estimates. Users should note that the demographic data are limited to seven states and reflect 2018 reporting periods; these figures should not be treated as nationally representative or as indicative of current database composition.
 
 \begin{figure}[ht!]
 \centering
@@ -136,11 +140,11 @@ Together, these appendices provide two complementary resources: 1) agency-report
 \label{fig:sdis_map}
 \end{figure}
 
-\section*{Data Record}
+\section*{Data Records}
 
-The datasets presented in this study are available on Zenodo \cite{Pryor-Y-Donadio-J-P-Muller-M-Wilson-J-Lasisi-T2025-qq}. Detailed information and reproducible code used to process each of the datasets presented in this article, together with the full analyzes and the scraping methodology, can be accessed through our accompanying research website: \url{https://lasisilab.github.io/PODFRIDGE-Databases/}. The raw NDIS time series, SDIS cross section, FOIA demographics and Annual DNA collection files are available for download in .csv format.
+The datasets presented in this study are available on Zenodo \cite{Pryor-Y-Donadio-J-P-Muller-M-Wilson-J-Lasisi-T2025-qq}. Detailed information and reproducible code used to process each of the datasets presented in this article, together with the full analyses and the scraping methodology, can be accessed through our accompanying research website: \url{https://lasisilab.github.io/PODFRIDGE-Databases/}. The raw NDIS time series, SDIS cross section, FOIA demographics and Annual DNA collection files are available for download in .csv format.
 
-Figure \ref{fig:file_structure} presents a visual representation of the hierarchical directories that reflect the data sources, processing stages, and the final outputs derived. Each major data stream (NDIS, SDIS, FOIA, and Annual DNA Collection) is subdivided into standardized processing levels (Raw, Intermediate, and Final) to ensure transparency and reproducibility between analyzes. The ndis\_crossref subfolder houses a 2015 CODIS brochure, as well as the data from Table \ref{tab:reference}. The definitions for all organizational terminology used across all files are available as a data dictionary in the README.md file located in the data subfolder and also located on our Github repository.
+Figure \ref{fig:file_structure} presents a visual representation of the hierarchical directories that reflect the data sources, processing stages, and the final outputs derived. Each major data stream (NDIS, SDIS, FOIA, and Annual DNA Collection) is subdivided into standardized processing levels (Raw, Intermediate, and Final) to ensure transparency and reproducibility between analyses. The ndis\_crossref subfolder houses a 2015 CODIS brochure, as well as the data from Table \ref{tab:reference}. The definitions for all organizational terminology used across all files are available as a data dictionary in the README.md file located in the data subfolder and also located on our Github repository.
 
 \begin{figure}[ht!]
 \centering
@@ -171,7 +175,7 @@ All flags are preserved as boolean columns in the released dataset. This approac
 
 \paragraph{Anomaly summary.}
 
-Using these rules, we identified 898 flags across all metrics and jurisdictions (Figure~\ref{fig:anomalies}). The majority were stale exact reappearances ($743$), followed by spike-dip events ($77$), decimal spike-dip errors ($68$), and NDIS labs spikes ($10$). By metric, offender profiles had the most flags ($420$), followed by forensic profiles ($379$), investigations aided ($49$), arrestee profiles ($40$), and NDIS laboratories ($10$). Figure~\ref{fig:heatmaps} shows the temporal coverage of NDIS snapshots and the distribution of time gaps between captures.
+Using these rules, we identified 898 flags across all metrics and jurisdictions (Figure~\ref{fig:anomalies}). The majority were stale exact reappearances ($743$), followed by spike-dip events ($77$), decimal spike-dip errors ($68$), and NDIS labs spikes ($10$). By metric, offender profiles had the most flags ($420$), followed by forensic profiles ($379$), investigations aided ($49$), arrestee profiles ($40$), and NDIS laboratories ($10$). Figure~\ref{fig:timegaps} shows the archival coverage of NDIS snapshots over time and the distribution of time gaps between successive captures, including annotated outlier jurisdictions with the largest gaps.
 
 \paragraph{External calibration.}
 
@@ -180,15 +184,15 @@ After cleaning, we compared national totals to independent reference points from
 \begin{figure}[ht!]
 \centering
 \includegraphics[width=\textwidth]{fig5_anomaly_distribution.pdf}
-\caption{\textbf{Anomaly flag distribution.} A four-panel stacked bar chart showing the distribution of data quality flags across jurisdictions, broken down by flag type: decimal spike-dip, spike-dip, NDIS labs spike, and stale exact reappearance. Each panel shows the count of flags per jurisdiction for a given flag category, colored by metric type.}
+\caption{\textbf{Anomaly flag distribution.} Four-panel stacked bar chart showing the distribution of data quality flags across jurisdictions. (A)~Decimal Error flags, (B)~Spike/Dip flags, (C)~Labs Spike flags, and (D)~Stale Cache flags. Bars are colored by metric type (Offender Profiles, Forensic Profiles, Arrestee Profiles, Investigations Aided, NDIS Labs). Each panel uses an independent $y$-axis to accommodate differences in flag counts across rule types.}
 \label{fig:anomalies}
 \end{figure}
 
 \begin{figure}[ht!]
 \centering
 \includegraphics[width=\textwidth]{fig6_time_gap_analysis.pdf}
-\caption{\textbf{NDIS time gap analysis.} Heatmaps and distributions showing the temporal coverage of NDIS snapshots across jurisdictions and the gaps between successive captures, illustrating the density and regularity of archived FBI data availability over time.}
-\label{fig:heatmaps}
+\caption{\textbf{Archival coverage and time gap analysis.} (a)~Monthly snapshot counts across all jurisdictions, showing temporal density of archived captures. (b)~Yearly variance in snapshot counts across jurisdictions, illustrating how uniformly the Internet Archive captured NDIS pages over time. (c)~Distribution of time gaps between successive snapshots (all gaps), with annotated outliers including Puerto Rico (2,528~days), Oregon (483~days), and Kansas (431~days). (d)~Distribution of time gaps filtered to $\leq$100~days, showing the typical gap structure. Reference lines in (c) and (d) indicate minimum, maximum, mean, and median gap values.}
+\label{fig:timegaps}
 \end{figure}
 
 \begin{table}[ht!]
@@ -200,19 +204,19 @@ After cleaning, we compared national totals to independent reference points from
 Citation & Date & Offender & Arrestee & Forensic & Total & Investigations \\
 & & Profiles & Profiles & Profiles & Profiles & Aided \\
 \midrule
-FBI (Dec 2000) & 12/1/00 & 441,181 & NA & 21,625 & NA & 1,573 \\
-FBI (Dec 2002) & 12/1/02 & 1,247,163 & NA & 46,177 & NA & 6,670 \\
-FBI (Dec 2004) & 12/1/04 & 2,038,514 & NA & 93,956 & NA & 21,266 \\
-FBI (Dec 2006) & 12/1/06 & 3,977,435 & 54,313 & 160,582 & NA & 45,364 \\
-FBI (Dec 2008) & 12/1/08 & 6,399,200 & 140,719 & 248,943 & NA & 81,955 \\
-FBI (Dec 2010) & 12/1/10 & 8,564,705 & 668,849 & 351,951 & NA & 130,317 \\
-FBI (Dec 2012) & 12/1/12 & 10,086,404 & 1,332,721 & 446,689 & NA & 190,560 \\
-FBI (Jun 2015) & 6/1/15 & 11,822,927 & 2,028,734 & 638,162 & NA & 274,648 \\
-Ge et al. 2012 & 6/1/11 & NA & NA & NA & 10,000,000 & 141,300 \\
-Ge et al. 2014 & 5/1/13 & NA & NA & NA & 12,000,000 & 185,000 \\
-Wickenheiser 2022 & 10/1/21 & 14,836,490 & 4,513,955 & 1,144,255 & NA & 587,773 \\
-Link et al. 2023 & 11/1/22 & NA & NA & NA & 21,791,620 & 622,955 \\
-Greenwald \& Phiri 2024 & 2/1/24 & 17,000,000 & 5,000,000 & 1,300,000 & NA & 680,000 \\
+FBI (Dec 2000) & 2000-Dec-01 & 441,181 & NA & 21,625 & NA & 1,573 \\
+FBI (Dec 2002) & 2002-Dec-01 & 1,247,163 & NA & 46,177 & NA & 6,670 \\
+FBI (Dec 2004) & 2004-Dec-01 & 2,038,514 & NA & 93,956 & NA & 21,266 \\
+FBI (Dec 2006) & 2006-Dec-01 & 3,977,435 & 54,313 & 160,582 & NA & 45,364 \\
+FBI (Dec 2008) & 2008-Dec-01 & 6,399,200 & 140,719 & 248,943 & NA & 81,955 \\
+FBI (Dec 2010) & 2010-Dec-01 & 8,564,705 & 668,849 & 351,951 & NA & 130,317 \\
+FBI (Dec 2012) & 2012-Dec-01 & 10,086,404 & 1,332,721 & 446,689 & NA & 190,560 \\
+FBI (Jun 2015) & 2015-Jun-01 & 11,822,927 & 2,028,734 & 638,162 & NA & 274,648 \\
+Ge et al. 2012 & 2011-Jun-01 & NA & NA & NA & 10,000,000 & 141,300 \\
+Ge et al. 2014 & 2013-May-01 & NA & NA & NA & 12,000,000 & 185,000 \\
+Wickenheiser 2022 & 2021-Oct-01 & 14,836,490 & 4,513,955 & 1,144,255 & NA & 587,773 \\
+Link et al. 2023 & 2022-Nov-01 & NA & NA & NA & 21,791,620 & 622,955 \\
+Greenwald \& Phiri 2024 & 2024-Feb-01 & 17,000,000 & 5,000,000 & 1,300,000 & NA & 680,000 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -228,7 +232,7 @@ Greenwald \& Phiri 2024 & 2/1/24 & 17,000,000 & 5,000,000 & 1,300,000 & NA & 680
 
 \section*{Data Availability}
 
-The datasets are archived on Zenodo: \url{https://doi.org/10.5281/zenodo.17215677}. Contents include NDIS (time series), SDIS (state cross-section and arrestee/familial search policies), and FOIA components. The FOIA folder contains the original scanned state responses received by Murphy \& Tong (2020) and machine-readable transcriptions. Reuse of the FOIA scans should cite Murphy \& Tong (2020) \cite{Murphy2020-pc} in addition to this dataset.
+The datasets are archived on Zenodo: \url{https://doi.org/10.5281/zenodo.18820515}. Contents include NDIS (time series), SDIS (state cross-section and arrestee/familial search policies), and FOIA components. The FOIA folder contains the original scanned state responses received by Murphy \& Tong (2020) and machine-readable transcriptions. Reuse of the FOIA scans should cite Murphy \& Tong (2020) \cite{Murphy2020-pc} in addition to this dataset.
 
 \section*{Code Availability}
 
@@ -241,12 +245,12 @@ We thank Erin Murphy for providing access to the original FOIA-acquired state-le
 \section*{Author Contributions}
 
 \textbf{Conceptualization:} Lasisi, T. \\
-\textbf{Data curation:} Donadio, J. P.; Lasisi, T.; Muller, S. C., Wilson, J.; Pryor, Y. \\
+\textbf{Data curation:} Donadio, J. P.; Lasisi, T.; Muller, S. C.; Ranka, V.; Wilson, J.; Pryor, Y. \\
 \textbf{Methodology:} Lasisi, T.; Donadio, J. P. \\
-\textbf{Validation:} Lasisi, T.; Donadio, J. P. \\
-\textbf{Visualization:} Donadio, J. P.; Lasisi, T., Pryor, Y. \\
+\textbf{Validation:} Lasisi, T.; Donadio, J. P.; Ranka, V. \\
+\textbf{Visualization:} Donadio, J. P.; Lasisi, T.; Ranka, V.; Pryor, Y. \\
 \textbf{Writing -- original draft:} Lasisi, T. \\
-\textbf{Writing -- review and editing:} Lasisi, T.; Donadio, J. P.; Muller, S.C.; Pryor, Y.; Wilson, J. \\
+\textbf{Writing -- review and editing:} Lasisi, T.; Donadio, J. P.; Muller, S.C.; Pryor, Y.; Ranka, V.; Wilson, J. \\
 \textbf{Supervision:} Lasisi, T.
 
 \section*{Competing Interests}

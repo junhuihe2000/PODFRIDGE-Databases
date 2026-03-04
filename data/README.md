@@ -1,6 +1,6 @@
 # Data Dictionary
 
-This folder contains four primary datasets documenting U.S. forensic DNA databases. All datasets are versioned and archived on Zenodo (DOI: [10.5281/zenodo.17215677](https://doi.org/10.5281/zenodo.17215677)) including the raw, intermediate and final files. Below we will discuss only the versioned processed data in the `versioned_data` subfolder. The process for getting to these final files is described in each analysis file that generates the processed data from the raw (see `analysis/` subfolder described in our GitHub repository:  [https://github.com/lasisilab/PODFRIDGE-Databases](https://github.com/lasisilab/PODFRIDGE-Databases)).
+This folder contains four primary datasets documenting U.S. forensic DNA databases. All datasets are versioned and archived on Zenodo (DOI: [10.5281/zenodo.17215676](https://doi.org/10.5281/zenodo.17215676)) including the raw, intermediate and final files. Below we will discuss only the versioned processed data in the `versioned_data` subfolder. The process for getting to these final files is described in each analysis file that generates the processed data from the raw (see `analysis/` subfolder described in our GitHub repository:  [https://github.com/lasisilab/PODFRIDGE-Databases](https://github.com/lasisilab/PODFRIDGE-Databases)).
 
 ---
 
@@ -226,4 +226,4 @@ data/
 
 
 **Last updated:** 2026-02-24
-**Zenodo DOI:** [10.5281/zenodo.17215677](https://doi.org/10.5281/zenodo.17215677)
+**Zenodo DOI:** [10.5281/zenodo.17215676](https://doi.org/10.5281/zenodo.17215676)

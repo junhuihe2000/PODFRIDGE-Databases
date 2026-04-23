@@ -20,7 +20,8 @@ execute:
 
 # Configure reticulate to use the project venv for Python
 library(reticulate)
-use_virtualenv(here::here(".venv"), required = TRUE)
+use_condaenv("base", required = TRUE)
+# use_virtualenv(here::here(".venv"), required = TRUE)
 ```
 
 ## 1. Create Intermediate data from raw data
@@ -1368,13 +1369,13 @@ literature_data <- read_csv(here("data", "ndis_crossref", "literature_data.csv")
 # Convert pandas DataFrame to R data.frame
 py_df <- py$growth_data_yearly
 growth_data <- data.frame(
-  year = as.numeric(py_df$year$values),
-  offender_profiles = as.numeric(py_df$offender_profiles$values),
-  arrestee = as.numeric(py_df$arrestee$values),
-  forensic_profiles = as.numeric(py_df$forensic_profiles$values),
-  investigations_aided = as.numeric(py_df$investigations_aided$values),
-  ndis_labs = as.numeric(py_df$ndis_labs$values),
-  total_profiles = as.numeric(py_df$total_profiles$values)
+  year = as.numeric(py_df$year),
+  offender_profiles = as.numeric(py_df$offender_profiles),
+  arrestee = as.numeric(py_df$arrestee),
+  forensic_profiles = as.numeric(py_df$forensic_profiles),
+  investigations_aided = as.numeric(py_df$investigations_aided),
+  ndis_labs = as.numeric(py_df$ndis_labs),
+  total_profiles = as.numeric(py_df$total_profiles)
 ) |>
   mutate(date = as.Date(paste0(year, "-06-01")))
 

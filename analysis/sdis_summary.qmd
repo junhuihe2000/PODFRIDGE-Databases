@@ -1354,7 +1354,8 @@ ndis_latest <- ndis %>%
   # If there are duplicates at the same timestamp, take the first
   slice(1) %>%
   ungroup() %>%
-  select(jurisdiction, ndis_profiles = total_profiles, capture_datetime)
+  select(jurisdiction, ndis_profiles = value, capture_datetime)
+  # select(jurisdiction, ndis_profiles = total_profiles, capture_datetime)
 
 # Prepare SDIS data - USE n_total_estimated which excludes forensic!
 sdis_summary <- sdis %>%

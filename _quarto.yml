@@ -30,6 +30,8 @@ website:
             text: FOIA processing
           - href: analysis/appendix_analysis.html
             text: Annual DNA Collection
+          - href: analysis/murphy_tong.html
+            text: Murphy-Tong replication
 format:
   html:
     theme:

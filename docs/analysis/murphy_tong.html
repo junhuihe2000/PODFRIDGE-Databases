@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.26">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Junhui He">
+<meta name="dcterms.date" content="2026-04-22">
+
+<title>Murphy-Tong Analysis Replication – PODFRIDGE-Databases</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-5b4ad623e5705c0698d39aec6f10cf02.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<link href="../site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet">
+<script src="../site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">PODFRIDGE-Databases</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-analyses" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Analyses</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-analyses">    
+        <li>
+    <a class="dropdown-item" href="../analysis/ndis_scraping.html">
+ <span class="dropdown-text">NDIS scraping methodology</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../analysis/ndis_analysis.html">
+ <span class="dropdown-text">NDIS analysis</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../analysis/sdis_summary.html">
+ <span class="dropdown-text">SDIS summary</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../analysis/foia_processing.html">
+ <span class="dropdown-text">FOIA processing</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../analysis/appendix_analysis.html">
+ <span class="dropdown-text">Annual DNA Collection</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../analysis/murphy_tong.html">
+ <span class="dropdown-text">Murphy-Tong replication</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="https://github.com/lasisilab/PODFRIDGE-Databases"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text">Source</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#replicating-table-1-racial-composition-of-dna-databases-from-seven-states" id="toc-replicating-table-1-racial-composition-of-dna-databases-from-seven-states" class="nav-link active" data-scroll-target="#replicating-table-1-racial-composition-of-dna-databases-from-seven-states">Replicating Table 1: Racial Composition of DNA Databases from Seven States</a>
+  <ul class="collapse">
+  <li><a href="#overview-of-table-1" id="toc-overview-of-table-1" class="nav-link" data-scroll-target="#overview-of-table-1">Overview of Table 1</a></li>
+  <li><a href="#reproducing-the-calculations" id="toc-reproducing-the-calculations" class="nav-link" data-scroll-target="#reproducing-the-calculations">Reproducing the Calculations</a>
+  <ul class="collapse">
+  <li><a href="#ndis-profiles" id="toc-ndis-profiles" class="nav-link" data-scroll-target="#ndis-profiles">NDIS Profiles</a></li>
+  <li><a href="#sdis-profiles" id="toc-sdis-profiles" class="nav-link" data-scroll-target="#sdis-profiles">SDIS Profiles</a></li>
+  <li><a href="#census-data" id="toc-census-data" class="nav-link" data-scroll-target="#census-data">Census Data</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#replicating-figure-2-racial-and-ethnic-composition-of-33.4-of-national-dna-database" id="toc-replicating-figure-2-racial-and-ethnic-composition-of-33.4-of-national-dna-database" class="nav-link" data-scroll-target="#replicating-figure-2-racial-and-ethnic-composition-of-33.4-of-national-dna-database">Replicating Figure 2: Racial and ethnic composition of 33.4% of national DNA database</a>
+  <ul class="collapse">
+  <li><a href="#overview-of-figure-2" id="toc-overview-of-figure-2" class="nav-link" data-scroll-target="#overview-of-figure-2">Overview of Figure 2</a></li>
+  <li><a href="#reproducing-the-calculations-1" id="toc-reproducing-the-calculations-1" class="nav-link" data-scroll-target="#reproducing-the-calculations-1">Reproducing the Calculations</a></li>
+  </ul></li>
+  <li><a href="#replicating-figure-4-bottom-panel-estimated-racial-breakdown-of-the-dna-collected-nationally" id="toc-replicating-figure-4-bottom-panel-estimated-racial-breakdown-of-the-dna-collected-nationally" class="nav-link" data-scroll-target="#replicating-figure-4-bottom-panel-estimated-racial-breakdown-of-the-dna-collected-nationally">Replicating Figure 4 bottom panel: Estimated racial breakdown of the DNA collected nationally</a>
+  <ul class="collapse">
+  <li><a href="#overview-of-figure-4-bottom-panel" id="toc-overview-of-figure-4-bottom-panel" class="nav-link" data-scroll-target="#overview-of-figure-4-bottom-panel">Overview of Figure 4 bottom panel</a></li>
+  <li><a href="#reproducing-the-calculations-2" id="toc-reproducing-the-calculations-2" class="nav-link" data-scroll-target="#reproducing-the-calculations-2">Reproducing the Calculations</a></li>
+  </ul></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Murphy-Tong Analysis Replication</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Junhui He </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">April 22, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>In this analysis, we will replicate the figures and calculations from <span class="citation" data-cites="murphy2020racial">Murphy and Tong (<a href="#ref-murphy2020racial" role="doc-biblioref">2020</a>)</span> on racial demographics in forensic DNA databases. We will use the data provided in the annual DNA collection dataset, as well as the FOIA data on DNA profiles in state databases.</p>
+<section id="replicating-table-1-racial-composition-of-dna-databases-from-seven-states" class="level1">
+<h1>Replicating Table 1: Racial Composition of DNA Databases from Seven States</h1>
+<section id="overview-of-table-1" class="level2">
+<h2 class="anchored" data-anchor-id="overview-of-table-1">Overview of Table 1</h2>
+<p>Table 1 in the paper presents the disclosed data on the racial composition of DNA databases from seven states. The data is sourced from State DNA Index System (SDIS) through FOIA requests and includes the total number of known profiles in the National DNA Index System (NDIS), as well as the racial demographics in general populations from the U.S. Census Bureau. The original table is quoted below:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/murphy_tong/table1.png" class="img-fluid figure-img"></p>
+<figcaption>Table 1 from Murphy and Tong (2020)</figcaption>
+</figure>
+</div>
+</section>
+<section id="reproducing-the-calculations" class="level2">
+<h2 class="anchored" data-anchor-id="reproducing-the-calculations">Reproducing the Calculations</h2>
+<p>We will reproduce the calculations for Table 1 based on the the explanations provided in the paper.</p>
+<section id="ndis-profiles" class="level3">
+<h3 class="anchored" data-anchor-id="ndis-profiles">NDIS Profiles</h3>
+<p>The NDIS profiles are calculated by summing the arrestee and offender profiles for each state as of September 2018. We will also calculate the total number of NDIS profiles across all seven states.</p>
+<blockquote class="blockquote">
+<p>The first row shows the total number of known profiles in NDIS from each contributing state as of September 2018.</p>
+</blockquote>
+<div class="cell" data-tbl-cap="NDIS profiles from the seven states as of September 2018">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># seven contributing states and two forensic profile types</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>states <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"California"</span>, <span class="st">"Florida"</span>, <span class="st">"Indiana"</span>, <span class="st">"Maine"</span>, <span class="st">"Nevada"</span>, <span class="st">"South Dakota"</span>, <span class="st">"Texas"</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>forensic_profiles <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"arrestee"</span>, <span class="st">"offender_profiles"</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># read NDIS data (these numbers are obtained from the NDIS rather than SDIS)</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>ndis <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"../data/ndis/final/ndis_time_series.csv"</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>ndis_used <span class="ot">&lt;-</span> ndis <span class="sc">%&gt;%</span> <span class="fu">select</span>(asof_date, jurisdiction, metric_type, value) <span class="sc">%&gt;%</span> <span class="fu">filter</span>(asof_date <span class="sc">==</span> <span class="st">"2018-09-01"</span>, jurisdiction <span class="sc">%in%</span> states, metric_type <span class="sc">%in%</span> forensic_profiles) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>()</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>ndis_profiles <span class="ot">&lt;-</span> ndis_used <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(asof_date, jurisdiction) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">total_NDIS_profiles =</span> <span class="fu">sum</span>(value), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>ndis_profiles <span class="ot">&lt;-</span> ndis_profiles <span class="sc">%&gt;%</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(.,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">asof_date =</span> <span class="st">"2018-09-01"</span>,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>      <span class="at">jurisdiction =</span> <span class="st">"Total"</span>,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>      <span class="at">total_NDIS_profiles =</span> <span class="fu">sum</span>(total_NDIS_profiles)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>ndis_profiles</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div data-pagedtable="false"> <div class="table-caption"><p>NDIS profiles from the seven states as of September 2018</p></div>
+  <script data-pagedtable-source="" type="application/json">
+{"columns":[{"label":["asof_date"],"name":[1],"type":["chr"],"align":["left"]},{"label":["jurisdiction"],"name":[2],"type":["chr"],"align":["left"]},{"label":["total_NDIS_profiles"],"name":[3],"type":["int"],"align":["right"]}],"data":[{"1":"2018-09-01","2":"California","3":"2768269"},{"1":"2018-09-01","2":"Florida","3":"1350667"},{"1":"2018-09-01","2":"Indiana","3":"307714"},{"1":"2018-09-01","2":"Maine","3":"32847"},{"1":"2018-09-01","2":"Nevada","3":"167726"},{"1":"2018-09-01","2":"South Dakota","3":"67600"},{"1":"2018-09-01","2":"Texas","3":"960985"},{"1":"2018-09-01","2":"Total","3":"5655808"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+</div>
+</section>
+<section id="sdis-profiles" class="level3">
+<h3 class="anchored" data-anchor-id="sdis-profiles">SDIS Profiles</h3>
+<p>The SDIS profiles are calculated based on the FOIA data obtained from the seven states.</p>
+<blockquote class="blockquote">
+<p>As of September 2018, the National Database contained 13,528,363 offender profiles (which are primarily from convicted persons, but also include certain detained persons and legally mandated samples) and 3,280,752 arrestee profiles, for a total of 16,809,115 profiles of known persons.</p>
+</blockquote>
+<div class="cell" data-tbl-cap="Total NDIS profiles across all states as of September 2018">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate total NDIS profiles for the U.S.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>ndis_total <span class="ot">&lt;-</span> ndis <span class="sc">%&gt;%</span> <span class="fu">select</span>(asof_date, jurisdiction, metric_type, value) <span class="sc">%&gt;%</span> <span class="fu">filter</span>(asof_date <span class="sc">==</span> <span class="st">"2018-09-01"</span>, metric_type <span class="sc">%in%</span> forensic_profiles) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>()</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>ndis_total_profiles <span class="ot">&lt;-</span> ndis_total <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(asof_date, metric_type) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">total_NDIS_profiles =</span> <span class="fu">sum</span>(value), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>ndis_total_profiles <span class="ot">&lt;-</span> ndis_total_profiles <span class="sc">%&gt;%</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(.,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">asof_date =</span> <span class="st">"2018-09-01"</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">metric_type =</span> <span class="st">"Total"</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">total_NDIS_profiles =</span> <span class="fu">sum</span>(total_NDIS_profiles)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>ndis_total_profiles</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div data-pagedtable="false"> <div class="table-caption"><p>Total NDIS profiles across all states as of September 2018</p></div>
+  <script data-pagedtable-source="" type="application/json">
+{"columns":[{"label":["asof_date"],"name":[1],"type":["chr"],"align":["left"]},{"label":["metric_type"],"name":[2],"type":["chr"],"align":["left"]},{"label":["total_NDIS_profiles"],"name":[3],"type":["int"],"align":["right"]}],"data":[{"1":"2018-09-01","2":"arrestee","3":"3280752"},{"1":"2018-09-01","2":"offender_profiles","3":"13528363"},{"1":"2018-09-01","2":"Total","3":"16809115"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>The second row shows the number of profiles in SDIS from each state, as disclosed in the summer of 2018 by each listed state in response to our request. Within that row, in italics beneath the raw number of profiles, is the percentage of the NDIS database that those profiles represent.</p>
+</blockquote>
+<p>The percentage of NDIS profiles represented by SDIS profiles is calculated by dividing the total number of SDIS profiles for each state by the total number of NDIS profiles across all states: <span class="math display">\[\text{Percentage of NDIS represented by SDIS} = \frac{\text{SDIS profiles for a state}}{\text{total NDIS profiles across all states}}.\]</span></p>
+<div class="cell" data-tbl-cap="Total SDIS profiles from the seven states and their percentage of total NDIS profiles as of September 2018">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># read FOIA data on SDIS profiles from the seven states</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>sdis <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"../data/foia/final/foia_data_clean.csv"</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>sdis_total_profiles <span class="ot">&lt;-</span> sdis <span class="sc">%&gt;%</span> <span class="fu">filter</span>(state <span class="sc">%in%</span> states, offender_type <span class="sc">==</span> <span class="st">"Combined"</span>, variable_category <span class="sc">==</span> <span class="st">"total"</span>, value_type <span class="sc">==</span> <span class="st">"count"</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(state, value) <span class="sc">%&gt;%</span> <span class="fu">rename</span>(<span class="at">total_SDIS_profiles =</span> value)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>sdis_total_profiles <span class="ot">&lt;-</span> sdis_total_profiles <span class="sc">%&gt;%</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(.,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">state =</span> <span class="st">"Total"</span>,</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">total_SDIS_profiles =</span> <span class="fu">sum</span>(total_SDIS_profiles)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>sdis_total_profiles <span class="ot">&lt;-</span> sdis_total_profiles <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">percent_of_NDIS =</span> <span class="fu">round</span>((total_SDIS_profiles <span class="sc">/</span> ndis_total_profiles<span class="sc">$</span>total_NDIS_profiles[ndis_total_profiles<span class="sc">$</span>metric_type <span class="sc">==</span> <span class="st">"Total"</span>]) <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>))</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>sdis_total_profiles</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div data-pagedtable="false"> <div class="table-caption"><p>Total SDIS profiles from the seven states and their percentage of
+total NDIS profiles as of September 2018</p></div>
+  <script data-pagedtable-source="" type="application/json">
+{"columns":[{"label":["state"],"name":[1],"type":["chr"],"align":["left"]},{"label":["total_SDIS_profiles"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["percent_of_NDIS"],"name":[3],"type":["dbl"],"align":["right"]}],"data":[{"1":"California","2":"2771721","3":"16.5"},{"1":"Florida","2":"1175391","3":"7.0"},{"1":"Indiana","2":"300741","3":"1.8"},{"1":"Maine","2":"33711","3":"0.2"},{"1":"Nevada","2":"344097","3":"2.0"},{"1":"South Dakota","2":"67753","3":"0.4"},{"1":"Texas","2":"918953","3":"5.5"},{"1":"Total","2":"5612367","3":"33.4"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+</div>
+<p><span style="color: red; font-weight: bold;">Discrepancy:</span> For Nevada, the percentage is 2.0%, slightly different from the 2.1% reported in the paper. For South Dakota, the total SDIS profiles is 67,753, rather than the 67,753.4 reported in the paper. The percentage for South Dakota is 0.4%, not the missing value.</p>
+<blockquote class="blockquote">
+<p>The next rows show the percentage of the state’s database profiles that comes from each racial or ethnic group. Below each of those, in italics, is that group’s share of the general population in the state.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p>The far-right column represents total data. The top numbers represent the totals as a percentage of the disclosed data, whereas the bottom numbers represent the totals as a reflection of the national population. Thus, for instance, the box where the “Total” column meets the “Black” row shows that 23.6% of the profiles from the disclosed data came from persons identified as Black, whereas only 13.4% of the national U.S. population identifies as Black.</p>
+</blockquote>
+<p>The top number in the “Total” column is calculated by taking the weighted average of the percentages of SDIS profiles from each racial or ethnic group across the seven states, using the total number of SDIS profiles from each state as weights. The weighted average is calculated as follows: <span class="math display">\[\begin{align}
+&amp; \text{SDIS Weighted Average}  = \frac{\sum_{i=1}^{7} \text{Total SDIS profiles for a racial group in state } i }{\sum_{i=1}^{7} \text{Total SDIS profiles in state } i} \\
+&amp; = \frac{\sum_{i=1}^{7} (\text{SDIS percentages for a racial group in state } i \times \text{Total SDIS profiles in state } i)}{\sum_{i=1}^{7} \text{Total SDIS profiles in state } i}. \\
+\end{align}
+\]</span></p>
+<div class="cell" data-tbl-cap="Percentage of SDIS profiles from each racial or ethnic group for each state and their weighted average across the seven states, using the total number of SDIS profiles from each state as weights">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate the percentage of SDIS profiles from each racial or ethnic group for each state</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>sdis_racial_profiles <span class="ot">&lt;-</span> sdis <span class="sc">%&gt;%</span> <span class="fu">filter</span>(state <span class="sc">%in%</span> states, offender_type <span class="sc">==</span> <span class="st">"Combined"</span>, variable_category <span class="sc">==</span> <span class="st">"race"</span>, value_type <span class="sc">==</span> <span class="st">"percentage"</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(state, variable_detailed, value) <span class="sc">%&gt;%</span> <span class="fu">rename</span>(<span class="at">race =</span> variable_detailed, <span class="at">percent_SDIS_profiles =</span> value)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>races <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"White"</span>, </span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Black"</span>, </span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Hispanic"</span>, </span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Asian"</span>, </span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Native American"</span>, </span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Other"</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Unknown"</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Pivot the long dataframe into a wide format</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>sdis_racial_profiles_wide <span class="ot">&lt;-</span> sdis_racial_profiles <span class="sc">%&gt;%</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_from =</span> state, </span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_from =</span> percent_SDIS_profiles</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>sdis_racial_profiles_wide <span class="ot">&lt;-</span> sdis_racial_profiles_wide <span class="sc">%&gt;%</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">race =</span> <span class="fu">factor</span>(race, <span class="at">levels =</span> races)) <span class="sc">%&gt;%</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(race)</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract just the states and their total profiles</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>state_weights <span class="ot">&lt;-</span> sdis_total_profiles <span class="sc">%&gt;%</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(state <span class="sc">!=</span> <span class="st">"Total"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">state =</span> state, <span class="at">weight =</span> total_SDIS_profiles)</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate the weighted average for each race</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>weighted_calculations <span class="ot">&lt;-</span> sdis_racial_profiles <span class="sc">%&gt;%</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(state_weights, <span class="at">by =</span> <span class="st">"state"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(race) <span class="sc">%&gt;%</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">Total =</span> <span class="fu">sum</span>(percent_SDIS_profiles <span class="sc">*</span> weight, <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">/</span> </span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">sum</span>(weight, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Attach the new column to your wide table</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>sdis_racial_profiles_wide <span class="ot">&lt;-</span> sdis_racial_profiles_wide <span class="sc">%&gt;%</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(weighted_calculations, <span class="at">by =</span> <span class="st">"race"</span>)</span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>sdis_racial_profiles_wide</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div data-pagedtable="false"> <div class="table-caption"><p>Percentage of SDIS profiles from each racial or ethnic group for each
+state and their weighted average across the seven states, using the
+total number of SDIS profiles from each state as weights</p></div>
+  <script data-pagedtable-source="" type="application/json">
+{"columns":[{"label":["race"],"name":[1],"type":["chr"],"align":["left"]},{"label":["California"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Florida"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["Indiana"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["Maine"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["Nevada"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["South Dakota"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["Texas"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["Total"],"name":[9],"type":["dbl"],"align":["right"]}],"data":[{"1":"White","2":"29.58","3":"61.38","4":"69.6517413","5":"92.8","6":"69.377","7":"66.75","8":"37.27","9":"42.9146616"},{"1":"Black","2":"17.09","3":"35.20","4":"25.8706468","5":"3.9","6":"25.625","7":"5.96","8":"29.08","9":"23.6261739"},{"1":"Hispanic","2":"34.66","3":"2.42","4":"3.9800995","5":"0.5","6":"NA","7":"4.35","8":"32.69","9":"24.7636188"},{"1":"Asian","2":"0.99","3":"0.23","4":"NA","5":"0.4","6":"2.346","7":"0.08","8":"0.42","9":"0.7956999"},{"1":"Native American","2":"NA","3":"0.06","4":"NA","5":"1.0","6":"1.659","7":"21.54","8":"0.02","9":"0.8476183"},{"1":"Other","2":"NA","3":"0.10","4":"0.4975124","5":"NA","6":"NA","7":"NA","8":"0.28","9":"0.2189769"},{"1":"Unknown","2":"17.68","3":"0.61","4":"NA","5":"1.4","6":"1.015","7":"1.32","8":"0.24","9":"9.4937882"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+</div>
+<p><span style="color: red; font-weight: bold;">Discrepancy:</span> For the Other race, the percentage of SDIS profiles in Indiana is calculated as 0.498%, not the missing value in the paper. For the Unknown race, the percentages of SDIS profiles in California, South Dakota and Texas are 17.7%, 1.32%, and 0.24%, respectively, not the missing value in the paper. The weighted averages for the Hispanic, Asian, Native American, Other and Unknown categories are 24.8%, 0.796%, 0.848%, 0.219%, 9.49%, respectively, slightly different from the 23.2%, 0.75%, 0.38%, 0.08%, 0.02% reported in the paper.</p>
+<blockquote class="blockquote">
+<p>States also disclosed demographic information about sex, which isprovided in the lowest rows.</p>
+</blockquote>
+<div class="cell" data-tbl-cap="Percentage of SDIS profiles from each gender for each state">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate the percentage of SDIS profiles from each gender for each state</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>sdis_gender_profiles <span class="ot">&lt;-</span> sdis <span class="sc">%&gt;%</span> <span class="fu">filter</span>(state <span class="sc">%in%</span> states, offender_type <span class="sc">==</span> <span class="st">"Combined"</span>, variable_category <span class="sc">==</span> <span class="st">"gender"</span>, value_type <span class="sc">==</span> <span class="st">"percentage"</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(state, variable_detailed, value) <span class="sc">%&gt;%</span> <span class="fu">rename</span>(<span class="at">gender =</span> variable_detailed, <span class="at">percent_SDIS_profiles =</span> value)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>sdis_gender_profiles_wide <span class="ot">&lt;-</span> sdis_gender_profiles <span class="sc">%&gt;%</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_from =</span> state, </span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_from =</span> percent_SDIS_profiles</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(gender)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>genders <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Male"</span>, <span class="st">"Female"</span>, <span class="st">"Unknown"</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>sdis_gender_profiles_wide <span class="ot">&lt;-</span> sdis_gender_profiles_wide <span class="sc">%&gt;%</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">gender =</span> <span class="fu">factor</span>(gender, <span class="at">levels =</span> genders)) <span class="sc">%&gt;%</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(gender)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>sdis_gender_profiles_wide</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div data-pagedtable="false"> <div class="table-caption"><p>Percentage of SDIS profiles from each gender for each state</p></div>
+  <script data-pagedtable-source="" type="application/json">
+{"columns":[{"label":["gender"],"name":[1],"type":["fct"],"align":["left"]},{"label":["California"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Florida"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["Indiana"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["Maine"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["Nevada"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["South Dakota"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["Texas"],"name":[8],"type":["dbl"],"align":["right"]}],"data":[{"1":"Male","2":"76.76","3":"76.67","4":"80","5":"82.7827828","6":"81.5870","7":"75.56","8":"84.75"},{"1":"Female","2":"18.69","3":"22.20","4":"20","5":"17.0170170","6":"18.3920","7":"24.44","8":"15.25"},{"1":"Unknown","2":"4.55","3":"1.14","4":"NA","5":"0.2002002","6":"0.0209","7":"NA","8":"NA"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+</div>
+</section>
+<section id="census-data" class="level3">
+<h3 class="anchored" data-anchor-id="census-data">Census Data</h3>
+<p>The clean Census data is not stored in the POFRIDGE database, so we will not be able to reproduce the exact table for the general population demographics.</p>
+<blockquote class="blockquote">
+<p>All general population demographic data are taken from www.census.gov, which draws from an array of sources.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p>United States, U.S. CENSUS BUREAU (July 1, 2019), www.census.gov/quickfacts/ [https://perma.cc/NQS7-VX2N] (in the search bar at the top left, type in the name of each state). The figures for the “White” population are drawn from the census figure for “White alone, not Hispanic or Latino.” There are no figures for other racial groups that exclude “Hispanic or Latino,” so the population percentages reported for those groups may include persons who identify both with the race listed and as Hispanic.</p>
+</blockquote>
+</section>
+</section>
+</section>
+<section id="replicating-figure-2-racial-and-ethnic-composition-of-33.4-of-national-dna-database" class="level1">
+<h1>Replicating Figure 2: Racial and ethnic composition of 33.4% of national DNA database</h1>
+<section id="overview-of-figure-2" class="level2">
+<h2 class="anchored" data-anchor-id="overview-of-figure-2">Overview of Figure 2</h2>
+<p>Figure 2 in the paper presents the racial and ethnic composition of the 33.4% of the national DNA database that is represented by the SDIS profiles from the seven states. The original figure is quoted below:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/murphy_tong/figure2.png" class="img-fluid figure-img"></p>
+<figcaption>Figure 2 from Murphy and Tong (2020)</figcaption>
+</figure>
+</div>
+</section>
+<section id="reproducing-the-calculations-1" class="level2">
+<h2 class="anchored" data-anchor-id="reproducing-the-calculations-1">Reproducing the Calculations</h2>
+<p>The numbers in Figure 2 are straightforward to obtain based on the far-right “Total” column from Table 1.</p>
+<ol type="1">
+<li><p>The 33.4% is the percentage of NDIS profiles represented by the SDIS profiles from the seven states, which is calculated by dividing the total number of SDIS profiles across all seven states by the total number of NDIS profiles across all states.</p></li>
+<li><p>The racial composition is the top numbers in the “Total” column from Table 1, which are calculated as the weighted average of the percentages of SDIS profiles from each racial or ethnic group across the seven states, using the total number of SDIS profiles from each state as weights.</p></li>
+</ol>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Prepare the data without changing the order</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>plot_data <span class="ot">&lt;-</span> sdis_racial_profiles_wide <span class="sc">%&gt;%</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(race, Total) <span class="sc">%&gt;%</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">race =</span> <span class="fu">factor</span>(race, <span class="at">levels =</span> races), <span class="co"># Ensure the order is the same as in the original data</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">pie_label =</span> <span class="fu">paste0</span>(race, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">round</span>(Total, <span class="dv">2</span>), <span class="st">"%"</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Build the chart using ggrepel and position_stack</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(plot_data, <span class="fu">aes</span>(<span class="at">x =</span> <span class="dv">1</span>, <span class="at">y =</span> Total, <span class="at">fill =</span> race)) <span class="sc">+</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">width =</span> <span class="dv">1</span>, <span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_polar</span>(<span class="st">"y"</span>, <span class="at">start =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Use the automatic stacking position with ggrepel</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_label_repel</span>(</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">label =</span> pie_label),</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">position_stack</span>(<span class="at">vjust =</span> <span class="fl">0.5</span>), </span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="dv">4</span>,</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">show.legend =</span> <span class="cn">FALSE</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_void</span>() <span class="sc">+</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>) <span class="sc">+</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Racial and ethnic composition of 33.4% of national DNA database"</span>,</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Replication of Figure 2 from Murphy and Tong (2020)"</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="murphy_tong_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="replicating-figure-4-bottom-panel-estimated-racial-breakdown-of-the-dna-collected-nationally" class="level1">
+<h1>Replicating Figure 4 bottom panel: Estimated racial breakdown of the DNA collected nationally</h1>
+<p>NDIS profiles do not provide information on the racial demographics for each state, and the FOIA data on SDIS profiles only covers seven states. However, <span class="citation" data-cites="murphy2020racial">Murphy and Tong (<a href="#ref-murphy2020racial" role="doc-biblioref">2020</a>)</span> estimates the racial breakdown of the NDIS profiles by using the annual DNA collection dataset, which includes the percentage of DNA profiles collected annually from each racial group for each state.</p>
+<section id="overview-of-figure-4-bottom-panel" class="level2">
+<h2 class="anchored" data-anchor-id="overview-of-figure-4-bottom-panel">Overview of Figure 4 bottom panel</h2>
+<p>Figure 4 bottom panel in the paper presents the estimated racial breakdown of the DNA collected nationally, which is calculated by taking the weighted average of the percentages of DNA profiles collected annually from each racial group across all states, using the total number of NDIS profiles from each state as weights. The original figure is quoted below:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/murphy_tong/figure4.png" class="img-fluid figure-img"></p>
+<figcaption>Figure 4 bottom panel from Murphy and Tong (2020)</figcaption>
+</figure>
+</div>
+</section>
+<section id="reproducing-the-calculations-2" class="level2">
+<h2 class="anchored" data-anchor-id="reproducing-the-calculations-2">Reproducing the Calculations</h2>
+<blockquote class="blockquote">
+<p>The racial breakdown of the DNA database in Figure 4 assumes that the racial breakdown of the DNA collected annually for each state is the same as that of the total DNA profiles collected by each state, as disclosed by the National DNA Index. We aggregated the data for the states to create the racial breakdown for the total DNA profiles nationally.</p>
+</blockquote>
+<div class="cell" data-tbl-cap="Estimated racial breakdown of NDIS profiles for each state, using the racial breakdown of the DNA collected annually for each state">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># read the annual DNA collection dataset</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>annual_dna_collection <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"../data/annual_dna_collection/final/Annual_DNA_Collection.csv"</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>annual_dna_profiles <span class="ot">&lt;-</span> annual_dna_collection <span class="sc">%&gt;%</span> <span class="fu">select</span>(state, White_DNA_Pct, Black_DNA_Pct, Hispanic_DNA_Pct, Asian_DNA_Pct, Native_American_DNA_Pct, Total_DNA_Profiles)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># read the NDIS data to get the total number of NDIS profiles for each state</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>ndis_all_profiles <span class="ot">&lt;-</span> ndis_total <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(asof_date, jurisdiction) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">total_NDIS_profiles =</span> <span class="fu">sum</span>(value), <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span> <span class="fu">rename</span>(<span class="at">state =</span> jurisdiction) <span class="sc">%&gt;%</span> <span class="fu">select</span>(state, total_NDIS_profiles)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>annual_dna_profiles <span class="ot">&lt;-</span> annual_dna_profiles <span class="sc">%&gt;%</span> <span class="fu">left_join</span>(ndis_all_profiles, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"state"</span> <span class="ot">=</span> <span class="st">"state"</span>))</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>annual_dna_profiles</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div data-pagedtable="false"> <div class="table-caption"><p>Estimated racial breakdown of NDIS profiles for each state, using the
+racial breakdown of the DNA collected annually for each state</p></div>
+  <script data-pagedtable-source="" type="application/json">
+{"columns":[{"label":["state"],"name":[1],"type":["chr"],"align":["left"]},{"label":["White_DNA_Pct"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Black_DNA_Pct"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["Hispanic_DNA_Pct"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["Asian_DNA_Pct"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["Native_American_DNA_Pct"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["Total_DNA_Profiles"],"name":[7],"type":["int"],"align":["right"]},{"label":["total_NDIS_profiles"],"name":[8],"type":["int"],"align":["right"]}],"data":[{"1":"Alabama","2":"54.0","3":"46.0","4":"NA","5":"NA","6":"NA","7":"39545","8":"298520"},{"1":"Alaska","2":"43.5","3":"7.6","4":"2.8","5":"3.00","6":"43.10","7":"35311","8":"59905"},{"1":"Arizona","2":"46.6","3":"12.6","4":"32.0","5":"0.50","6":"8.20","7":"73669","8":"398701"},{"1":"Arkansas","2":"55.0","3":"42.3","4":"2.7","5":"0.04","6":"NA","7":"10395","8":"201097"},{"1":"California","2":"37.0","3":"25.0","4":"37.6","5":"NA","6":"0.40","7":"567170","8":"2768269"},{"1":"Colorado","2":"63.1","3":"12.8","4":"24.0","5":"0.03","6":"0.08","7":"223434","8":"446484"},{"1":"Connecticut","2":"56.4","3":"25.5","4":"18.1","5":"NA","6":"NA","7":"8809","8":"114921"},{"1":"Delaware","2":"14.5","3":"79.9","4":"5.6","5":"NA","6":"NA","7":"11760","8":"17659"},{"1":"Florida","2":"64.0","3":"34.8","4":"0.5","5":"0.60","6":"0.10","7":"804332","8":"1350667"},{"1":"Georgia","2":"42.1","3":"54.5","4":"2.4","5":"0.40","6":"0.05","7":"15047","8":"333897"},{"1":"Hawaii","2":"27.1","3":"4.6","4":"4.6","5":"21.60","6":"42.10","7":"11131","8":"36855"},{"1":"Idaho","2":"77.8","3":"3.0","4":"16.2","5":"NA","6":"3.00","7":"8041","8":"49205"},{"1":"Illinois","2":"29.3","3":"58.2","4":"12.6","5":"NA","6":"NA","7":"31094","8":"613854"},{"1":"Indiana","2":"72.4","3":"24.8","4":"2.8","5":"NA","6":"NA","7":"14468","8":"307714"},{"1":"Iowa","2":"74.0","3":"20.8","4":"3.3","5":"0.90","6":"1.10","7":"23017","8":"120304"},{"1":"Kansas","2":"72.8","3":"26.8","4":"NA","5":"0.10","6":"0.30","7":"48538","8":"191116"},{"1":"Kentucky","2":"64.7","3":"29.3","4":"5.1","5":"NA","6":"1.00","7":"118670","8":"178932"},{"1":"Louisiana","2":"30.2","3":"65.8","4":"4.0","5":"NA","6":"NA","7":"16469","8":"543499"},{"1":"Maine","2":"88.9","3":"7.1","4":"2.0","5":"NA","6":"2.00","7":"3202","8":"32847"},{"1":"Maryland","2":"36.4","3":"62.8","4":"NA","5":"0.70","6":"0.10","7":"55491","8":"168797"},{"1":"Massachusetts","2":"65.9","3":"18.5","4":"15.6","5":"NA","6":"NA","7":"14681","8":"144131"},{"1":"Michigan","2":"65.5","3":"33.4","4":"0.1","5":"0.40","6":"0.50","7":"256960","8":"472462"},{"1":"Minnesota","2":"66.7","3":"25.6","4":"NA","5":"2.70","6":"5.10","7":"155525","8":"164564"},{"1":"Mississippi","2":"39.5","3":"59.6","4":"0.9","5":"NA","6":"NA","7":"10612","8":"122680"},{"1":"Missouri","2":"66.9","3":"31.4","4":"1.1","5":"0.40","6":"0.20","7":"11783","8":"352397"},{"1":"Montana","2":"79.7","3":"1.9","4":"NA","5":"1.00","6":"17.40","7":"2460","8":"37940"},{"1":"Nebraska","2":"60.5","3":"23.1","4":"11.4","5":"0.50","6":"4.60","7":"2451","8":"42751"},{"1":"Nevada","2":"46.0","3":"28.5","4":"21.3","5":"2.40","6":"1.80","7":"5629","8":"167726"},{"1":"New Hampshire","2":"92.6","3":"6.4","4":"NA","5":"0.50","6":"0.50","7":"624","8":"13333"},{"1":"New Jersey","2":"37.5","3":"52.8","4":"8.4","5":"1.30","6":"0.10","7":"17898","8":"326594"},{"1":"New Mexico","2":"31.0","3":"6.0","4":"52.0","5":"NA","6":"11.00","7":"2621","8":"118433"},{"1":"New York","2":"12.9","3":"51.8","4":"31.6","5":"3.70","6":"NA","7":"132709","8":"632299"},{"1":"North Carolina","2":"47.5","3":"52.3","4":"NA","5":"0.05","6":"0.10","7":"23450","8":"322382"},{"1":"North Dakota","2":"74.5","3":"9.2","4":"0.3","5":"0.60","6":"15.10","7":"32509","8":"38743"},{"1":"Ohio","2":"63.2","3":"36.2","4":"0.6","5":"0.03","6":"0.02","7":"71913","8":"728862"},{"1":"Oklahoma","2":"54.9","3":"26.7","4":"7.7","5":"NA","6":"10.80","7":"10656","8":"160162"},{"1":"Oregon","2":"70.4","3":"10.2","4":"16.3","5":"NA","6":"3.10","7":"5045","8":"205598"},{"1":"Pennsylvania","2":"49.7","3":"40.6","4":"9.7","5":"NA","6":"NA","7":"10238","8":"376021"},{"1":"Rhode Island","2":"54.3","3":"25.4","4":"20.3","5":"NA","6":"NA","7":"14465","8":"25599"},{"1":"South Carolina","2":"46.0","3":"54.0","4":"NA","5":"NA","6":"NA","7":"6955","8":"229598"},{"1":"South Dakota","2":"62.5","3":"7.3","4":"NA","5":"0.70","6":"29.60","7":"40687","8":"67600"},{"1":"Tennessee","2":"63.2","3":"35.9","4":"0.5","5":"0.30","6":"0.10","7":"40544","8":"354695"},{"1":"Texas","2":"36.0","3":"31.2","4":"32.8","5":"NA","6":"NA","7":"70955","8":"960985"},{"1":"Utah","2":"86.2","3":"5.4","4":"0.1","5":"2.40","6":"5.90","7":"110189","8":"112681"},{"1":"Vermont","2":"88.0","3":"10.7","4":"NA","5":"0.90","6":"0.40","7":"2754","8":"19636"},{"1":"Virginia","2":"47.1","3":"50.5","4":"2.4","5":"NA","6":"NA","7":"12379","8":"437131"},{"1":"Washington","2":"61.9","3":"18.6","4":"14.4","5":"NA","6":"5.20","7":"7413","8":"277579"},{"1":"West Virginia","2":"65.0","3":"28.0","4":"6.0","5":"NA","6":"1.00","7":"3412","8":"28968"},{"1":"Wisconsin","2":"56.3","3":"37.3","4":"NA","5":"1.20","6":"5.10","7":"9324","8":"284146"},{"1":"Wyoming","2":"74.0","3":"3.9","4":"14.4","5":"NA","6":"7.70","7":"3353","8":"26612"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+</div>
+</div>
+<p>The estimated racial breakdown of the DNA collected nationally is calculated by taking the weighted average of the percentages of DNA profiles collected annually from each racial group across all states, using the total number of NDIS profiles from each state as weights. The weighted average is calculated as follows: <span class="math display">\[\begin{align}
+&amp; \text{NDIS Weighted Average}  = \frac{\sum_{i=1}^{50} \text{Total NDIS profiles for a racial group in state } i }{\sum_{i=1}^{50} \text{Total NDIS profiles in state } i} \\
+&amp; = \frac{\sum_{i=1}^{50} (\text{Annual DNA collection percentages for a racial group in state } i \times \text{Total NDIS profiles in state } i)}{\sum_{i=1}^{50} \text{Total NDIS profiles in state } i}. \\
+\end{align}
+\]</span></p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate the weighted average for all racial percentage columns</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>weighted_racial_breakdown <span class="ot">&lt;-</span> annual_dna_profiles <span class="sc">%&gt;%</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>      <span class="at">.cols =</span> <span class="fu">ends_with</span>(<span class="st">"_DNA_Pct"</span>),</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>      <span class="at">.fns =</span> <span class="sc">~</span> <span class="fu">weighted.mean</span>(.x, <span class="at">w =</span> total_NDIS_profiles, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>ndis_racial_breakdown <span class="ot">&lt;-</span> weighted_racial_breakdown <span class="sc">%&gt;%</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"race"</span>, <span class="at">values_to =</span> <span class="st">"Total"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">race =</span> <span class="fu">case_when</span>(</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    race <span class="sc">==</span> <span class="st">"White_DNA_Pct"</span> <span class="sc">~</span> <span class="st">"White"</span>,</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    race <span class="sc">==</span> <span class="st">"Black_DNA_Pct"</span> <span class="sc">~</span> <span class="st">"Black"</span>,</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    race <span class="sc">==</span> <span class="st">"Hispanic_DNA_Pct"</span> <span class="sc">~</span> <span class="st">"Hispanic"</span>,</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    race <span class="sc">==</span> <span class="st">"Asian_DNA_Pct"</span> <span class="sc">~</span> <span class="st">"Asian"</span>,</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    race <span class="sc">==</span> <span class="st">"Native_American_DNA_Pct"</span> <span class="sc">~</span> <span class="st">"Native American"</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Prepare the data without changing the order</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>plot_data <span class="ot">&lt;-</span> ndis_racial_breakdown <span class="sc">%&gt;%</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(race, Total) <span class="sc">%&gt;%</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">race =</span> <span class="fu">factor</span>(race, <span class="at">levels =</span> races), <span class="co"># Ensure the order is the same as in the original data</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">pie_label =</span> <span class="fu">paste0</span>(race, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">round</span>(Total, <span class="dv">2</span>), <span class="st">"%"</span>)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Build the chart using ggrepel and position_stack</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(plot_data, <span class="fu">aes</span>(<span class="at">x =</span> <span class="dv">1</span>, <span class="at">y =</span> Total, <span class="at">fill =</span> race)) <span class="sc">+</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">width =</span> <span class="dv">1</span>, <span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_polar</span>(<span class="st">"y"</span>, <span class="at">start =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Use the automatic stacking position with ggrepel</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_label_repel</span>(</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">label =</span> pie_label),</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">position_stack</span>(<span class="at">vjust =</span> <span class="fl">0.5</span>), </span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="dv">4</span>,</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">show.legend =</span> <span class="cn">FALSE</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_void</span>() <span class="sc">+</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>) <span class="sc">+</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Estimated racial breakdown of the DNA collected nationally"</span>,</span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Replication of Figure 4 bottom panel from Murphy and Tong (2020)"</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="murphy_tong_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><span style="color: red; font-weight: bold;">Discrepancy:</span> The estimated racial breakdown of the DNA collected nationally is slightly different from the original figure. The percentages for White, Black, Hispanic, Asian and Native American are 48.96%, 34.49%, 16.61%, 0.97% and 2.08%, respectively, compared to the 49.00%, 34.47%, 14.66%, 0.46% and 1.41% reported in the paper.</p>
+</section>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-murphy2020racial" class="csl-entry" role="listitem">
+Murphy, Erin, and Jun H Tong. 2020. <span>“The Racial Composition of Forensic DNA Databases.”</span> <em>California Law Review</em> 108: 1847–1912.
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/lasisilab\.github\.io\/PODFRIDGE-Databases");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

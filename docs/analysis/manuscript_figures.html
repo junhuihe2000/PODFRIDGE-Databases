@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Tina Lasisi">
-<meta name="dcterms.date" content="2026-02-28">
+<meta name="dcterms.date" content="2026-04-22">
 
 <title>Manuscript Figures – PODFRIDGE-Databases</title>
 <style>
@@ -156,6 +156,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../analysis/appendix_analysis.html">
  <span class="dropdown-text">Annual DNA Collection</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="../analysis/murphy_tong.html">
+ <span class="dropdown-text">Murphy-Tong replication</span></a>
+  </li>  
     </ul>
   </li>
 </ul>
@@ -214,7 +218,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">February 28, 2026</p>
+      <p class="date">April 22, 2026</p>
     </div>
   </div>
   
@@ -235,11 +239,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-✔ dplyr     1.1.4     ✔ readr     2.1.5
-✔ forcats   1.0.0     ✔ stringr   1.5.1
-✔ ggplot2   4.0.1     ✔ tibble    3.3.1
-✔ lubridate 1.9.4     ✔ tidyr     1.3.1
-✔ purrr     1.2.0     
+✔ dplyr     1.2.1     ✔ readr     2.2.0
+✔ forcats   1.0.1     ✔ stringr   1.6.0
+✔ ggplot2   4.0.2     ✔ tibble    3.3.1
+✔ lubridate 1.9.5     ✔ tidyr     1.3.2
+✔ purrr     1.2.1     
 ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 ✖ dplyr::filter() masks stats::filter()
 ✖ dplyr::lag()    masks stats::lag()
@@ -250,7 +254,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stderr">
-<pre><code>here() starts at /Users/tlasisi/GitHub/PODFRIDGE-Databases</code></pre>
+<pre><code>here() starts at /Users/hjh/PhD/Tina/PODFRIDGE-Databases</code></pre>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
@@ -606,7 +610,7 @@ original CRS, set the OSR_USE_NON_DEPRECATED configuration option to NO.</code><
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="../output/figures/manuscript_figures/fig6_time_gap_analysis.png" class="img-fluid figure-img" alt="Four-panel figure showing time gap analysis: (a) monthly snapshot counts, (b) yearly variance, (c) gap distribution with outliers, (d) gap distribution without outliers." width="1788"></p>
+<p><img src="../output/figures/manuscript_figures/fig6_time_gap_analysis.png" class="img-fluid figure-img" alt="Four-panel figure showing time gap analysis: (a) monthly snapshot counts, (b) yearly variance, (c) gap distribution with outliers, (d) gap distribution without outliers." width="1774"></p>
 </figure>
 </div>
 </div>
@@ -832,7 +836,7 @@ Table&nbsp;1: Summary of published NDIS totals used for validation.
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning: There was 1 warning in `summarise()`.
 ℹ In argument: `offender_profiles = max(offender_profiles, na.rm = TRUE)`.
-ℹ In group 1000: `jurisdiction = "Puerto Rico"` `year = 2024`.
+ℹ In group 1000: `jurisdiction = "Puerto Rico"`, `year = 2024`.
 Caused by warning in `max()`:
 ! no non-missing arguments to max; returning -Inf</code></pre>
 </div>
